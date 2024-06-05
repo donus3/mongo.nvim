@@ -83,11 +83,12 @@ M.create_command_buf = function()
     -- resize the connection window
     if M.connection_win ~= nil then
       local current_connection_win_width = vim.api.nvim_win_get_width(M.connection_win)
-      local connection_win_width = current_connection_win_width / 2
+      local connection_win_width = math.floor(current_connection_win_width * 0.5)
       if connection_win_width < 20 then
         connection_win_width = 20
       end
 
+      print("connection win width: " .. connection_win_width)
       vim.api.nvim_win_set_width(M.connection_win, connection_win_width)
     end
 

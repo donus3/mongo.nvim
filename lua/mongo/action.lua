@@ -3,104 +3,75 @@ local query = require("mongo.query")
 local constant = require("mongo.constant")
 local utils = require("mongo.util")
 local ts = require("mongo.treesitter")
+local ss = require("mongo.session")
 
 ---@class Action
 local M = {}
-M.dbs_filtered = {}
-M.collections = {}
-M.selected_db = nil
-M.selected_collection = ""
-M.username = nil
-M.password = nil
-M.authSource = "admin"
-M.host = nil
-M.url = constant.host_fallback
-M.params = nil
----state machine
----init -> connected -> db_selected -> collection_selected
-M.current_state = constant.state.init
-M.is_legacy = nil
 M.config = {}
 
 table.unpack = table.unpack or unpack
-
-local clean = function()
-  M.dbs_filtered = {}
-  M.collections = {}
-  M.selected_db = nil
-  M.selected_collection = ""
-  M.username = nil
-  M.password = nil
-  M.authSource = "admin"
-  M.host = nil
-  M.url = constant.host_fallback
-  M.params = nil
-  M.current_state = constant.state.init
-  M.is_legacy = nil
-end
 
 M.open_web = function()
   vim.fn.system({ "open", constant.mongodb_crud_page })
 end
 
-M.init = function(config)
-  clean()
+---init initializes the action
+---@param config Config
+---@param session Session
+M.init = function(config, session)
   M.config = config
 
-  M.url = M.config.default_url or M.url
-  buffer.set_connection_win_content({ constant.host_example, "", M.url })
-  buffer.create_command_buf()
-  vim.api.nvim_set_current_win(buffer.connection_win)
+  ss.set_url(session.name, M.config.default_url)
+  buffer.set_connection_win_content(session, { constant.host_example, "", session.url })
+  buffer.create_command_buf(session)
+  vim.api.nvim_set_current_win(session.connection_win)
 
   vim.cmd(":3")
 
-  vim.keymap.set("n", "-", M.back, { buffer = buffer.connection_buf })
-  vim.keymap.set("n", "go", M.open_web, { buffer = buffer.command_buf })
-  vim.keymap.set("n", "gq", buffer.clean, { buffer = buffer.connection_buf })
-  vim.keymap.set("n", "gq", buffer.clean, { buffer = buffer.command_buf })
-  vim.keymap.set("n", "gq", buffer.clean, { buffer = buffer.result_buf })
+  vim.keymap.set("n", "-", function()
+    M.back(session)
+  end, { buffer = session.connection_buf })
+  vim.keymap.set("n", "go", M.open_web, { buffer = session.command_buf })
+  vim.keymap.set("n", "gq", function()
+    buffer.clean(session)
+  end, { buffer = session.connection_buf })
+  vim.keymap.set("n", "gq", function()
+    buffer.clean(session)
+  end, { buffer = session.command_buf })
+  vim.keymap.set("n", "gq", function()
+    buffer.clean(session)
+  end, { buffer = session.result_buf })
 
   -- clean up autocmd when leave
   local group = vim.api.nvim_create_augroup("MongoDBActionLeave", { clear = true })
   vim.api.nvim_create_autocmd("WinClosed", {
     group = group,
-    buffer = buffer.command_buf,
+    buffer = session.command_buf,
     callback = function()
-      clean()
+      ss.remove(session.name)
     end,
   })
 end
 
-local get_host = function()
-  local host = M.host
-
-  if M.selected_db ~= nil then
-    host = host .. "/" .. M.selected_db
-  end
-
-  if M.params ~= nil then
-    host = host .. "/" .. M.params
-  end
-
-  return host
-end
-
-local check_is_legacy_async = function(cb)
-  if M.is_legacy == nil then
-    local host = get_host()
+---check_is_legacy_async check if the host is legacy or not
+---@param session Session
+---@param cb fun()
+local check_is_legacy_async = function(session, cb)
+  if session.is_legacy == nil then
+    local host = ss.get_host(session.name)
     local full_cmd = {
       "mongosh",
       host,
       "--authenticationDatabase",
-      M.authSource,
+      session.auth_source,
       "--quiet",
     }
 
     vim.system(full_cmd, { text = true }, function(out)
       if out.stderr:find("MongoServerSelectionError") then
-        M.is_legacy = true
+        ss.set_session_field(session.name, "is_legacy", true)
       else
-        M.is_legacy = false
+        ss.set_session_field(session.name, "is_legacy", false)
       end
       cb()
     end)
@@ -108,167 +79,120 @@ local check_is_legacy_async = function(cb)
 end
 
 ---run_command run mongosh or mongo with given args asynchronously
+---@param session Session
 ---@param args string eval string arguments pass the mongosh
 ---@param on_exit fun(out: {code: number, stdout: string, stderr: string}) cb function to call after the command is done
-local run_async_command = function(args, on_exit)
+local run_async_command = function(session, args, on_exit)
   vim.defer_fn(function()
     -- disable the back keymaps while running the command
-    vim.keymap.set("n", "-", "", { buffer = buffer.connection_buf })
+    vim.keymap.set("n", "-", "", { buffer = session.connection_buf })
   end, 0)
 
-  local host = get_host()
+  local host = ss.get_host(session.name)
   local cmd = "mongosh"
-  if M.is_legacy then
+  if session.is_legacy then
     cmd = "mongo"
   end
 
   local full_cmd = {
     cmd,
-    host,
+    host .. "/" .. (session.selected_db or ""),
     "--authenticationDatabase",
-    M.authSource,
+    session.auth_source,
     "--quiet",
     "--eval",
     args,
   }
 
-  if M.username ~= nil and M.password ~= nil then
+  if session.username ~= nil and session.password ~= nil then
     table.insert(full_cmd, "-u")
-    table.insert(full_cmd, M.username)
+    table.insert(full_cmd, session.username)
     table.insert(full_cmd, "-p")
-    table.insert(full_cmd, M.password)
+    table.insert(full_cmd, session.password)
   end
 
   return vim.system(full_cmd, { text = true }, function(out)
     -- enable the back keymaps
     vim.defer_fn(function()
-      vim.keymap.set("n", "-", M.back, { buffer = buffer.connection_buf })
+      vim.keymap.set("n", "-", function()
+        M.back(session)
+      end, { buffer = session.connection_buf })
     end, 0)
     on_exit(out)
   end)
 end
 
-local setParams = function(params, options)
-  if params ~= nil then
-    for authSource in params:gmatch("[&]?auth[S|s]ource=(%w+)[&]?") do
-      if authSource ~= nil then
-        M.authSource = authSource
-      end
-    end
-    local excludeAuthSourceOptions = options:gsub("[&]?authSource=%w+[&]?", "")
-    if excludeAuthSourceOptions ~= nil and excludeAuthSourceOptions ~= "?" then
-      M.params = excludeAuthSourceOptions
-    end
-  end
-end
-
-local check_options = function(input_url, options)
-  if options ~= nil then
-    if options:match("^%?.*$") == nil then
-      -- there is a db name in the URL
-      for db_name, params in input_url:gmatch("(%w+)(/%?.*)$") do
-        M.selected_db = db_name
-        setParams(params, options)
-      end
-    else
-      setParams(options, options)
-    end
-  end
-end
-
-local select_db = function(skip_current_line)
+local select_db = function(session, skip_current_line)
   if not skip_current_line then
-    M.selected_db = utils.get_line()
+    ss.set_session_field(session.name, "selected_db", utils.get_line())
   end
-  M.show_collections_async()
+  M.show_collections_async(session)
 end
 
--- check the input mongo url and set each part to the corresponding module variable
--- host, username, password, authSource, params
-local checkHost = function()
+---check the input mongo url and set each part to the corresponding module variable
+---host, username, password, authSource, params
+---@param session Session
+local checkHost = function(session)
   local input_url = utils.get_line()
 
-  M.url = input_url
-  -- try to parse the url with username and password
-  for username, password, host, options in input_url:gmatch("mongodb://(.*):(.*)@([%w|:|%d]+[/]?%w*)[/]?(.*)$") do
-    M.username = username
-    M.password = password
-    M.host = host
-    check_options(input_url, options)
-  end
+  ss.set_url(session.name, input_url)
 
-  if M.host == nil then
-    -- try to parse the url without username and password
-    for host, options in input_url:gmatch("mongodb://([%w|:|%d]+)[/]?(.*)$") do
-      M.host = host
-      check_options(input_url, options)
-    end
-  end
-
-  if M.host == nil then
-    vim.notify(
-      "Unsupported mongodb URL "
-        .. input_url
-        .. ". Please use mongodb://username:password@host[/db_name][/?options] or mongodb://host[/db_name][/?options]",
-      vim.log.levels.ERROR
-    )
-  end
-
-  for host, db_name in M.host:gmatch("(.*)/(.*)") do
-    if db_name ~= nil then
-      M.host = host
-      M.selected_db = db_name
-    end
-  end
-
-  check_is_legacy_async(function()
-    if M.selected_db ~= nil and M.selected_db ~= "" then
-      select_db(true)
+  check_is_legacy_async(session, function()
+    if session.selected_db ~= nil and session.selected_db ~= "" then
+      select_db(session, true)
       return
     end
 
-    M.show_dbs_async()
+    M.show_dbs_async(session)
   end)
 end
 
 ---set_connect_keymaps sets the keymaps for connect
+---@param session Session
 ---@param op "set" | "del"
-M.set_connect_keymaps = function(op)
+M.set_connect_keymaps = function(session, op)
   local map = {
     {
       mode = "n",
       lhs = "<CR>",
-      rhs = checkHost,
-      opts = { buffer = buffer.connection_buf },
+      rhs = function()
+        checkHost(session)
+      end,
+      opts = { buffer = session.connection_buf },
     },
   }
   utils.mapkeys(op, map)
 end
 
 ---connect connects to the given host
-M.connect = function()
-  M.current_state = constant.state.init
-  M.set_connect_keymaps("set")
+---@param session Session
+M.connect = function(session)
+  ss.set_session_field(session.name, "current_state", constant.state.init)
+  M.set_connect_keymaps(session, "set")
 end
 
 ---set_show_dbs_keymaps sets the keymaps for show dbs working space
+---@param session Session
 ---@param op "set" | "del"
-M.set_show_dbs_keymaps = function(op)
+M.set_show_dbs_keymaps = function(session, op)
   local map = {
     {
       mode = "n",
       lhs = "<CR>",
-      rhs = select_db,
-      opts = { buffer = buffer.connection_buf },
+      rhs = function()
+        select_db(session)
+      end,
+      opts = { buffer = session.connection_buf },
     },
   }
   utils.mapkeys(op, map)
 end
 
-M.show_dbs_async = function()
-  run_async_command("db.getMongo().getDBNames()", function(out)
+---show_dbs_async shows the dbs
+---@param session Session
+M.show_dbs_async = function(session)
+  run_async_command(session, "db.getMongo().getDBNames()", function(out)
     if out.code ~= 0 then
-      clean()
       vim.defer_fn(function()
         vim.notify(out.stderr, vim.log.levels.ERROR)
       end, 0)
@@ -276,7 +200,7 @@ M.show_dbs_async = function()
     end
 
     local dbs = out.stdout:gsub("'", '"')
-    M.dbs_filtered = {}
+    ss.set_session_field(session.name, "dbs_filtered", {})
     if dbs ~= nil then
       if dbs:match("^Mongo") then
         vim.defer_fn(function()
@@ -285,63 +209,70 @@ M.show_dbs_async = function()
         return
       end
 
+      local dbs_filtered = {}
       for _, d in ipairs(vim.json.decode(dbs)) do
-        table.insert(M.dbs_filtered, d)
+        table.insert(dbs_filtered, d)
       end
 
-      if next(M.dbs_filtered) == nil then
+      if next(dbs_filtered) == nil then
         vim.defer_fn(function()
-          M.current_state = constant.state.connected
-          buffer.set_connection_win_content({ "/** DB List */", "No DB Found" })
+          ss.set_session_field(session.name, "current_state", constant.state.connected)
+          buffer.set_connection_win_content(session, { "/** DB List */", "No DB Found" })
         end, 0)
         return
       end
 
       vim.defer_fn(function()
-        M.set_show_dbs_keymaps("set")
+        M.set_show_dbs_keymaps(session, "set")
       end, 0)
 
-      table.sort(M.dbs_filtered)
+      table.sort(dbs_filtered)
 
+      ss.set_session_field(session.name, "dbs_filtered", dbs_filtered)
       vim.defer_fn(function()
-        M.current_state = constant.state.connected
-        buffer.set_connection_win_content({ "/** DB List */", table.unpack(M.dbs_filtered) })
+        ss.set_session_field(session.name, "current_state", constant.state.connected)
+        buffer.set_connection_win_content(session, { "/** DB List */", table.unpack(dbs_filtered) })
       end, 0)
       return
     end
 
     vim.defer_fn(function()
-      M.current_state = constant.state.connected
-      buffer.set_connection_win_content({ "/** DB List */", "No DB Found" })
+      ss.set_session_field(session.name, "current_state", constant.state.connected)
+      buffer.set_connection_win_content(session, { "/** DB List */", "No DB Found" })
     end, 0)
   end)
 end
 
 ---set_show_collections_keymap sets the keymaps for show collections working space
+---@param session Session
 ---@param op "set" | "del"
-M.set_show_collections_keymap = function(op)
+M.set_show_collections_keymap = function(session, op)
   local map = {
     {
       mode = "n",
       lhs = "<CR>",
-      rhs = M.select_collection,
-      opts = { buffer = buffer.connection_buf },
+      rhs = function()
+        M.select_collection(session)
+      end,
+      opts = { buffer = session.connection_buf },
     },
     {
       mode = "n",
       lhs = "gx",
       rhs = function()
-        M.execute_asking(string.format("db[%s].drop()", utils.get_line()))
-        M.show_collections_async()
+        M.execute_asking(session, string.format("db[%s].drop()", utils.get_line()))
+        M.show_collections_async(session)
       end,
-      opts = { buffer = buffer.connection_buf },
+      opts = { buffer = session.connection_buf },
     },
   }
   utils.mapkeys(op, map)
 end
 
-M.show_collections_async = function()
-  run_async_command("db.getCollectionNames()", function(out)
+---show_collections_async shows the collections
+---@param session Session
+M.show_collections_async = function(session)
+  run_async_command(session, "db.getCollectionNames()", function(out)
     if out.code ~= 0 then
       vim.defer_fn(function()
         vim.notify(out.stderr, vim.log.levels.ERROR)
@@ -349,142 +280,151 @@ M.show_collections_async = function()
       return
     end
 
-    M.collections = {}
-    local collections = out.stdout:gsub("'", '"')
-    if collections ~= nil then
+    local collections_result = {}
+    if out.stdout ~= nil then
+      local collections = out.stdout:gsub("'", '"')
       if collections:match("^Mongo") then
         vim.defer_fn(function()
           vim.notify(collections, vim.log.levels.WARN)
         end, 0)
         return
       end
-      M.collections = vim.json.decode(collections)
+      collections_result = vim.json.decode(collections)
 
-      table.sort(M.collections)
+      table.sort(collections_result)
+      ss.set_session_field(session.name, "collections", collections_result)
+
       vim.defer_fn(function()
-        buffer.set_connection_win_content({ "/** Collection List */", table.unpack(M.collections) })
-        M.set_show_collections_keymap("set")
-        M.current_state = constant.state.db_selected
+        buffer.set_connection_win_content(session, { "/** Collection List */", table.unpack(collections_result) })
+        M.set_show_collections_keymap(session, "set")
+        ss.set_session_field(session.name, "current_state", constant.state.db_selected)
       end, 0)
 
       return
     end
 
     vim.defer_fn(function()
-      buffer.set_connection_win_content({ "/** Collection List */", "No Collection found" })
-      M.current_state = constant.state.db_selected
+      buffer.set_connection_win_content(session, { "/** Collection List */", "No Collection found" })
+      ss.set_session_field(session.name, "current_state", constant.state.db_selected)
     end, 0)
   end)
 end
 
 ---set_query_keymap sets the keymaps for query working space
+---@param session Session
 ---@param op "set" | "del"
-M.set_query_keymap = function(op)
+M.set_query_keymap = function(session, op)
   local map = {
     {
       mode = "n",
       lhs = "<CR>",
       rhs = function()
         local queries = utils.get_all_lines()
-        M.execute_asking(queries)
+        M.execute_asking(session, queries)
       end,
-      opts = { buffer = buffer.command_buf },
+      opts = { buffer = session.command_buf },
     },
     {
       mode = "n",
       lhs = "gf",
       rhs = function()
-        query.find(M.selected_collection)
+        query.find(session, session.selected_collection)
       end,
-      opts = { buffer = buffer.command_buf },
+      opts = { buffer = session.command_buf },
     },
     {
       mode = "n",
       lhs = "gi",
       rhs = function()
-        query.insert_one(M.selected_collection)
+        query.insert_one(session, session.selected_collection)
       end,
-      opts = { buffer = buffer.command_buf },
+      opts = { buffer = session.command_buf },
     },
     {
       mode = "n",
       lhs = "gu",
       rhs = function()
-        query.update_one(M.selected_collection)
+        query.update_one(session, session.selected_collection)
       end,
-      opts = { buffer = buffer.command_buf },
+      opts = { buffer = session.command_buf },
     },
     {
       mode = "n",
       lhs = "gd",
       rhs = function()
-        query.delete_one(M.selected_collection)
+        query.delete_one(session, session.selected_collection)
       end,
-      opts = { buffer = buffer.command_buf },
+      opts = { buffer = session.command_buf },
     },
   }
   utils.mapkeys(op, map)
 end
 
-M.set_result_keymap = function(op)
+---@param session Session
+---@param op "set" | "del"
+M.set_result_keymap = function(session, op)
   local map = {
     {
       mode = "n",
       lhs = "e",
       rhs = function()
-        local result = ts.run()
+        local result = ts.getDocument()
         if result ~= nil then
           local to_update_object = {}
           for s in result:gmatch("[^\r\n]+") do
             table.insert(to_update_object, s)
           end
-          query.update_one(M.selected_collection, to_update_object)
-          vim.api.nvim_set_current_win(buffer.command_win)
+          query.update_one(session, session.selected_collection, to_update_object)
+          vim.api.nvim_set_current_win(session.command_win)
         end
       end,
-      opts = { buffer = buffer.result_buf },
+      opts = { buffer = session.result_buf },
     },
     {
       mode = "n",
       lhs = "d",
       rhs = function()
-        local result = ts.run()
+        local result = ts.getDocument()
         if result ~= nil then
           local to_update_object = {}
           for s in result:gmatch("[^\r\n]+") do
             table.insert(to_update_object, s)
           end
-          query.delete_one(M.selected_collection, to_update_object)
-          vim.api.nvim_set_current_win(buffer.command_win)
+          query.delete_one(session, session.selected_collection, to_update_object)
+          vim.api.nvim_set_current_win(session.command_win)
         end
       end,
-      opts = { buffer = buffer.result_buf },
+      opts = { buffer = session.result_buf },
     },
   }
   utils.mapkeys(op, map)
 end
 
-M.select_collection = function()
-  M.selected_collection = utils.get_line()
+---@param session Session
+M.select_collection = function(session)
+  ss.set_session_field(session.name, "selected_collection", utils.get_line())
 
-  query.find(M.selected_collection)
-  vim.api.nvim_set_current_win(buffer.command_win)
+  query.find(session, session.selected_collection)
+  vim.api.nvim_set_current_win(session.command_win)
   if M.config.find_on_collection_selected then
-    M.execute_query_fn(query.find, M.selected_collection)
+    M.execute_query_fn(query.find, session.selected_collection)
   end
 
-  M.set_query_keymap("set")
-  M.current_state = constant.state.collection_selected
+  M.set_query_keymap(session, "set")
+  ss.set_session_field(session.name, "current_state", constant.state.collection_selected)
   vim.defer_fn(function() end, 0)
 end
 
-M.execute = function(queries)
+---execute executes the query
+----@param session Session
+----@param queries string
+M.execute = function(session, queries)
   local query_string = queries
   if type(queries) == "table" then
     query_string = table.concat(queries, " ")
   end
 
-  run_async_command(query_string, function(out)
+  run_async_command(session, query_string, function(out)
     if out.code ~= 0 then
       vim.defer_fn(function()
         vim.notify(out.stderr, vim.log.levels.ERROR)
@@ -500,54 +440,62 @@ M.execute = function(queries)
         text = vim.fn.split(result, "\n")
       end
 
-      buffer.create_result_buf()
-      M.set_result_keymap("set")
-      vim.api.nvim_set_option_value("modifiable", true, { buf = buffer.result_buf })
-      buffer.show_result(text)
-      vim.api.nvim_set_current_win(buffer.result_win)
-      vim.api.nvim_set_option_value("modifiable", false, { buf = buffer.result_buf })
+      buffer.create_result_buf(session)
+      M.set_result_keymap(session, "set")
+      vim.api.nvim_set_option_value("modifiable", true, { buf = session.result_buf })
+      buffer.show_result(session, text)
+      vim.api.nvim_set_current_win(session.result_win)
+      vim.api.nvim_set_option_value("modifiable", false, { buf = session.result_buf })
     end, 0)
   end)
 end
 
-M.execute_asking = function(queries)
+---execute_asking executes the query
+-----@param session Session
+-----@param queries string
+M.execute_asking = function(session, queries)
   vim.ui.input({ prompt = "Execute query?: [Y/n]" }, function(answer)
-    if answer ~= "y" and answer ~= "Y" and answer ~= "" and answer ~= nil then
+    if answer ~= "y" and answer ~= "Y" and answer ~= "" then
       return
     end
 
-    M.execute(queries)
+    M.execute(session, queries)
   end)
 end
 
-M.execute_query_fn = function(queryFunction, args)
+---execute_query_fn executes the query
+----@param session Session
+----@param queryFunction fun(args: string)
+----@param args string
+M.execute_query_fn = function(session, queryFunction, args)
   queryFunction(args)
   local queries = utils.get_all_lines()
-  M.execute(queries)
+  M.execute(session, queries)
 end
 
 ---back go back to the previous state
-M.back = function()
-  if M.current_state == constant.state.collection_selected then
-    M.set_query_keymap("del")
-    M.current_state = constant.state.db_selected
-    M.selected_collection = ""
-    M.collections = {}
-    buffer.delete_result_win()
-    M.show_collections_async()
-  elseif M.current_state == constant.state.db_selected then
-    M.set_show_collections_keymap("del")
-    M.current_state = constant.state.connected
-    M.dbs_filtered = {}
-    M.selected_db = ""
-    M.show_dbs_async()
-  elseif M.current_state == constant.state.connected then
-    M.set_show_dbs_keymaps("del")
-    M.current_state = constant.state.init
-    M.is_legacy = false
-    buffer.set_connection_win_content({ constant.host_example, "", M.url })
-    M.set_connect_keymaps("set")
-    clean()
+---@param session Session
+M.back = function(session)
+  if session.current_state == constant.state.collection_selected then
+    M.set_query_keymap(session, "del")
+    ss.set_session_field(session.name, "current_state", constant.state.db_selected)
+    ss.set_session_field(session.name, "selected_collection", "")
+    ss.set_session_field(session.name, "collections", {})
+    buffer.delete_result_win(session)
+    buffer.set_command_content(session, {})
+    M.show_collections_async(session)
+  elseif session.current_state == constant.state.db_selected then
+    M.set_show_collections_keymap(session, "del")
+    ss.set_session_field(session.name, "current_state", constant.state.connected)
+    ss.set_session_field(session.name, "dbs_filtered", {})
+    ss.set_session_field(session.name, "selected_db", "")
+    M.show_dbs_async(session)
+  elseif session.current_state == constant.state.connected then
+    M.set_show_dbs_keymaps(session, "del")
+    ss.set_session_field(session.name, "current_state", constant.state.init)
+    ss.set_session_field(session.name, "is_legacy", false)
+    buffer.set_connection_win_content(session, { constant.host_example, "", session.url })
+    M.set_connect_keymaps(session, "set")
   end
 end
 

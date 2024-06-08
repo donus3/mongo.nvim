@@ -1,5 +1,6 @@
 local action = require("mongo.action")
 local buffer = require("mongo.buffer")
+local ss = require("mongo.session")
 
 ---@class Config
 ---@field default_url string the default connection string URL
@@ -22,9 +23,11 @@ M.setup = function(args)
   M.config = vim.tbl_deep_extend("force", M.config, args or {})
 end
 
-M.connect = function()
-  action.init(M.config)
-  action.connect()
+M.connect = function(args)
+  local now = os.clock()
+  local session = ss.new(args[1] or now)
+  action.init(M.config, session)
+  action.connect(session)
 
   -- clean up autocmd when leave
   local group = vim.api.nvim_create_augroup("MongoDBNvimLeave", { clear = true })
@@ -32,7 +35,7 @@ M.connect = function()
     group = group,
     pattern = "*",
     callback = function()
-      buffer.clean()
+      buffer.clean(session)
     end,
   })
 end

@@ -1,10 +1,7 @@
 # mongo.nvim
-Mongo client UI plugin for neovim
-
+Mongo client UI plugin for neovim (Work in progress!)
 
 https://github.com/donus3/mongodb.nvim/assets/9076885/fde1991a-8e0b-4991-849e-8ce2436dd5da
-
-
 
 ## Installation
 
@@ -13,15 +10,22 @@ https://github.com/donus3/mongodb.nvim/assets/9076885/fde1991a-8e0b-4991-849e-8c
 - (For mongo < 3.6) mongo ([mongo](https://www.mongodb.com/docs/v4.4/mongo/))
 
 lazy.nvim
-```lau
+```lua
 {
   "donus3/mongo.nvim",
   config = function()
-    require("mongo").setup({
-      default_url = "mongodb://localhost:9999",
-    })
+    require("mongo").setup()
   end
 }
+```
+
+## Usage
+```vim
+# explicitly session name
+:Monogo <session-name>
+
+# randomly generate a session name (math.random)
+:Monogo
 ```
 
 ## Features
@@ -70,7 +74,12 @@ require("mongo").setup({
 |`e`|Update the document under cursor|
 
 ## To-do
-- [ ] Support multiple connections
+- [ ] Save session
+- [ ] Save queries
+- [ ] export results in json, csv
+- [ ] dump collection and database
+- [ ] import collection and database
+- [ ] export API
 
 ## License
 

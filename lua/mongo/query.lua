@@ -4,21 +4,23 @@ local buffer = require("mongo.buffer")
 local M = {}
 
 ---snippet insertOne query
+---@param session Session
 ---@param collection string
-M.insert_one = function(collection)
+M.insert_one = function(session, collection)
   local queryLines = {
     string.format("db['%s'].insertOne({", collection),
     "  ",
     "})",
   }
-  buffer.set_command_content({ "/** Insert One */", table.unpack(queryLines) })
+  buffer.set_command_content(session, { "/** Insert One */", table.unpack(queryLines) })
   vim.cmd(":3")
 end
 
 ---snippet deleteOne query
+---@param session Session
 ---@param collection string
 ---@param document? string[] | nil
-M.delete_one = function(collection, document)
+M.delete_one = function(session, collection, document)
   local queryLines = {
     string.format("db['%s'].deleteOne({", collection),
   }
@@ -28,14 +30,15 @@ M.delete_one = function(collection, document)
     table.insert(queryLines, "  ")
   end
   table.insert(queryLines, "})")
-  buffer.set_command_content({ "/** Delete One */", table.unpack(queryLines) })
+  buffer.set_command_content(session, { "/** Delete One */", table.unpack(queryLines) })
   vim.cmd(":3")
 end
 
 ---snippet updateOne query
+---@param session Session
 ---@param collection string
 ---@param document? string[] | nil
-M.update_one = function(collection, document)
+M.update_one = function(session, collection, document)
   local queryLines = {
     string.format("db['%s'].updateOne({", collection),
   }
@@ -55,13 +58,14 @@ M.update_one = function(collection, document)
 
   table.insert(queryLines, "})")
 
-  buffer.set_command_content({ "/** Update One */", table.unpack(queryLines) })
+  buffer.set_command_content(session, { "/** Update One */", table.unpack(queryLines) })
   vim.cmd(":3")
 end
 
 ---snippet find query
+---@param session Session
 ---@param collection string
-M.find = function(collection)
+M.find = function(session, collection)
   local queryLines = {
     string.format("db['%s'].find({", collection),
     "  ",
@@ -70,7 +74,7 @@ M.find = function(collection)
     "  .toArray()",
   }
 
-  buffer.set_command_content({ table.unpack(queryLines) })
+  buffer.set_command_content(session, { table.unpack(queryLines) })
   vim.cmd(":3")
 end
 

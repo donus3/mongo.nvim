@@ -1,10 +1,11 @@
-*mongodb.nvim.txt*        For Neovim >= 0.8.0        Last change: 2024 June 05
+*mongodb.nvim.txt*        For Neovim >= 0.8.0        Last change: 2024 June 08
 
 ==============================================================================
 Table of Contents                             *mongodb.nvim-table-of-contents*
 
 1. mongo.nvim                                        |mongodb.nvim-mongo.nvim|
   - Installation                        |mongodb.nvim-mongo.nvim-installation|
+  - Usage                                      |mongodb.nvim-mongo.nvim-usage|
   - Features                                |mongodb.nvim-mongo.nvim-features|
   - Default Configuration      |mongodb.nvim-mongo.nvim-default-configuration|
   - Keymaps                                  |mongodb.nvim-mongo.nvim-keymaps|
@@ -14,7 +15,7 @@ Table of Contents                             *mongodb.nvim-table-of-contents*
 ==============================================================================
 1. mongo.nvim                                        *mongodb.nvim-mongo.nvim*
 
-Mongo client UI plugin for neovim
+Mongo client UI plugin for neovim (Work in progress!)
 
 
 https://github.com/donus3/mongodb.nvim/assets/9076885/fde1991a-8e0b-4991-849e-8ce2436dd5da
@@ -30,15 +31,24 @@ PREREQUISITES ~
 
 lazy.nvim
 
->lau
+>lua
     {
       "donus3/mongo.nvim",
       config = function()
-        require("mongo").setup({
-          default_url = "mongodb://localhost:9999",
-        })
+        require("mongo").setup()
       end
     }
+<
+
+
+USAGE                                          *mongodb.nvim-mongo.nvim-usage*
+
+>vim
+    # explicitly session name
+    :Monogo <session-name>
+    
+    # randomly generate a session name (math.random)
+    :Monogo
 <
 
 
@@ -95,7 +105,12 @@ RESULT WORKSPACE ~
 
 TO-DO                                          *mongodb.nvim-mongo.nvim-to-do*
 
-- Support multiple connections
+- Save session
+- Save queries
+- export results in json, csv
+- dump collection and database
+- import collection and database
+- export API
 
 
 LICENSE                                      *mongodb.nvim-mongo.nvim-license*

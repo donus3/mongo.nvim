@@ -1,4 +1,4 @@
-*mongodb.nvim.txt*        For Neovim >= 0.8.0        Last change: 2024 June 08
+*mongodb.nvim.txt*        For Neovim >= 0.8.0        Last change: 2024 June 14
 
 ==============================================================================
 Table of Contents                             *mongodb.nvim-table-of-contents*
@@ -34,6 +34,9 @@ lazy.nvim
 >lua
     {
       "donus3/mongo.nvim",
+      dependencies = {
+        "ibhagwan/fzf-lua"
+      },
       config = function()
         require("mongo").setup()
       end

@@ -25,6 +25,7 @@ local M = {}
 ---@field result_win number | nil
 ---@field connection_buf number | nil
 ---@field connection_win number | nil
+---@field tabpage_num number | nil
 
 ---@type { [string]: Session }
 M.sessions = {}
@@ -125,11 +126,17 @@ local checkHost = function(url)
 end
 
 ---new creates a new session and add it to the sessions
----@param name string the session name
+---@param name string|nil the session name
 ---@return Session new_session new empty session
 M.new = function(name)
+  local session_name = name
+  if name == nil then
+    local now = os.clock()
+    session_name = "temp__" .. now
+  end
+
   local new_session = {
-    name = name,
+    name = session_name,
     url = "",
     host = nil,
     username = nil,
@@ -150,8 +157,9 @@ M.new = function(name)
     result_win = nil,
     connection_buf = nil,
     connection_win = nil,
+    tabpage_num = nil,
   }
-  M.sessions[name] = new_session
+  M.sessions[session_name] = new_session
   return new_session
 end
 
@@ -186,11 +194,41 @@ M.list = function()
   return M.sessions
 end
 
+---list returns all sessions
+---@return Session[]
+M.list_names = function()
+  local names = {}
+  for k, _ in pairs(M.sessions) do
+    table.insert(names, k)
+  end
+  return names
+end
+
 ---get gets a session from the sessions by name
 ---@param name string the session name to be retrieved
 ---@return Session
 M.get = function(name)
   return M.sessions[name]
+end
+
+---rename session
+---@param oldName string
+---@param newName string
+M.renameSession = function(oldName, newName)
+  local target = M.sessions[oldName]
+  target.name = newName
+  if target.connection_buf then
+    vim.api.nvim_buf_set_name(target.connection_buf, constant.connection_buf_name .. target.name)
+  end
+  if target.command_buf then
+    vim.api.nvim_buf_set_name(target.command_buf, constant.command_buf_name .. target.name)
+  end
+  if target.result_buf then
+    vim.api.nvim_buf_set_name(target.result_buf, constant.command_buf_name .. target.name)
+  end
+
+  M.sessions[newName] = target
+  M.sessions[oldName] = nil
 end
 
 ---remove a session out of the sessions

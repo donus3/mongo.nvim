@@ -24,8 +24,7 @@ M.setup = function(args)
 end
 
 M.connect = function(args)
-  local now = os.clock()
-  local session = ss.new(args[1] or now)
+  local session = ss.new(args[1])
   action.init(M.config, session)
   action.connect(session)
 

@@ -1,11 +1,8 @@
 local ss = require("mongo.session")
+local constant = require("mongo.constant")
 
 ---@class Buffer
 local M = {}
-
-local command_buf_name = "MongoDB Working Space "
-local result_buf_name = "MongoDB Query Results "
-local connection_buf_name = "MongoDB Connection "
 
 ---delete buffer and close window
 ---@param buf number
@@ -33,10 +30,12 @@ end
 M.create_connection_buf = function(session)
   if not session.connection_buf then
     vim.cmd("tabnew")
+
+    ss.set_session_field(session.name, "tabpage_num", vim.api.nvim_tabpage_get_number(0))
     ss.set_session_field(session.name, "connection_win", vim.api.nvim_tabpage_get_win(0))
     local tab_buf = vim.api.nvim_get_current_buf()
     ss.set_session_field(session.name, "connection_buf", vim.api.nvim_create_buf(false, true))
-    vim.api.nvim_buf_set_name(session.connection_buf, connection_buf_name .. session.name)
+    vim.api.nvim_buf_set_name(session.connection_buf, constant.connection_buf_name .. session.name)
     vim.api.nvim_win_set_buf(session.connection_win, session.connection_buf)
     vim.bo[session.connection_buf].filetype = "mongo-connection"
     force_delete_buffer(tab_buf)
@@ -87,7 +86,7 @@ M.create_command_buf = function(session)
     end
 
     ss.set_session_field(session.name, "command_buf", vim.api.nvim_create_buf(false, true))
-    vim.api.nvim_buf_set_name(session.command_buf, command_buf_name .. session.name)
+    vim.api.nvim_buf_set_name(session.command_buf, constant.command_buf_name .. session.name)
     vim.api.nvim_win_set_buf(session.command_win, session.command_buf)
     vim.bo[session.command_buf].filetype = "javascript"
 
@@ -136,7 +135,7 @@ M.create_result_buf = function(session)
     vim.cmd("vsplit")
     ss.set_session_field(session.name, "result_win", vim.api.nvim_get_current_win())
     ss.set_session_field(session.name, "result_buf", vim.api.nvim_create_buf(false, true))
-    vim.api.nvim_buf_set_name(session.result_buf, result_buf_name .. session.name)
+    vim.api.nvim_buf_set_name(session.result_buf, constant.result_buf_name .. session.name)
     vim.api.nvim_win_set_buf(session.result_win, session.result_buf)
     vim.bo[session.result_buf].filetype = "javascript"
     if session.command_win ~= nil then

@@ -15,6 +15,16 @@ M.open_web = function()
   vim.fn.system({ "open", constant.mongodb_crud_page })
 end
 
+local fuzzy_session_search = function()
+  require("fzf-lua").fzf_exec(ss.list_names(), {
+    prompt = "Session name> ",
+    winopts = { height = 0.33, width = 0.66 },
+    complete = function(selected)
+      vim.api.nvim_set_current_tabpage(ss.get(selected[1]).tabpage_num)
+    end,
+  })
+end
+
 ---init initializes the action
 ---@param config Config
 ---@param session Session
@@ -32,15 +42,14 @@ M.init = function(config, session)
     M.back(session)
   end, { buffer = session.connection_buf })
   vim.keymap.set("n", "go", M.open_web, { buffer = session.command_buf })
-  vim.keymap.set("n", "gq", function()
-    buffer.clean(session)
-  end, { buffer = session.connection_buf })
-  vim.keymap.set("n", "gq", function()
-    buffer.clean(session)
-  end, { buffer = session.command_buf })
-  vim.keymap.set("n", "gq", function()
-    buffer.clean(session)
-  end, { buffer = session.result_buf })
+
+  for _, buf in ipairs({ session.connection_buf, session.command_buf }) do
+    vim.keymap.set("n", "gq", function()
+      buffer.clean(session)
+    end, { buffer = buf })
+
+    vim.keymap.set("n", "gs", fuzzy_session_search, { buffer = buf })
+  end
 
   -- clean up autocmd when leave
   local group = vim.api.nvim_create_augroup("MongoDBActionLeave", { clear = true })
@@ -112,6 +121,7 @@ local run_async_command = function(session, args, on_exit)
   end
 
   return vim.system(full_cmd, { text = true }, function(out)
+    print(vim.inspect(out))
     -- enable the back keymaps
     vim.defer_fn(function()
       vim.keymap.set("n", "-", function()
@@ -122,11 +132,24 @@ local run_async_command = function(session, args, on_exit)
   end)
 end
 
+---selects the db name
+---@param session Session
+---@param skip_current_line boolean
 local select_db = function(session, skip_current_line)
   if not skip_current_line then
     ss.set_session_field(session.name, "selected_db", utils.get_line())
   end
-  M.show_collections_async(session)
+
+  local workingSession = session
+  if session.name:match("^temp__.*") then
+    local db_name = session.selected_db
+    if db_name ~= nil then
+      ss.renameSession(session.name, db_name)
+      workingSession = ss.get(db_name)
+    end
+  end
+
+  M.show_collections_async(workingSession)
 end
 
 ---check the input mongo url and set each part to the corresponding module variable
@@ -180,7 +203,7 @@ M.set_show_dbs_keymaps = function(session, op)
       mode = "n",
       lhs = "<CR>",
       rhs = function()
-        select_db(session)
+        select_db(session, false)
       end,
       opts = { buffer = session.connection_buf },
     },
@@ -398,6 +421,12 @@ M.set_result_keymap = function(session, op)
     },
   }
   utils.mapkeys(op, map)
+
+  vim.keymap.set("n", "gq", function()
+    buffer.clean(session)
+  end, { buffer = session.result_buf })
+
+  vim.keymap.set("n", "gs", fuzzy_session_search, { buffer = session.result_buf })
 end
 
 ---@param session Session

@@ -1,7 +1,7 @@
 local constant = require("mongo.constant")
 
 ---@class Sessions
-local M = {}
+local Session = {}
 
 ---@class Session
 ---@field name string
@@ -28,7 +28,7 @@ local M = {}
 ---@field tabpage_num number | nil
 
 ---@type { [string]: Session }
-M.sessions = {}
+Session.sessions = {}
 
 ---get_params_and_auth_source extracts authSource and params from options
 ---and returns them as table
@@ -109,8 +109,8 @@ local checkHost = function(url)
   if result.host == nil then
     vim.notify(
       "Unsupported mongodb URL "
-        .. url
-        .. ". Please use mongodb://username:password@host[/db_name][/?options] or mongodb://host[/db_name][/?options]",
+      .. url
+      .. ". Please use mongodb://username:password@host[/db_name][/?options] or mongodb://host[/db_name][/?options]",
       vim.log.levels.ERROR
     )
   end
@@ -128,9 +128,9 @@ end
 ---new creates a new session and add it to the sessions
 ---@param name string|nil the session name
 ---@return Session new_session new empty session
-M.new = function(name)
+Session.new = function(name)
   local session_name = name
-  if name == nil then
+  if session_name == nil then
     local now = os.clock()
     session_name = "temp__" .. now
   end
@@ -159,16 +159,16 @@ M.new = function(name)
     connection_win = nil,
     tabpage_num = nil,
   }
-  M.sessions[session_name] = new_session
+  Session.sessions[session_name] = new_session
   return new_session
 end
 
 --=set_url sets url parts to the session identified by name
 ---@param name string the session name
 ---@param url string the mongodb url to be set
-M.set_url = function(name, url)
+Session.set_url = function(name, url)
   local parts = checkHost(url)
-  local session = M.sessions[name]
+  local session = Session.sessions[name]
   session.url = url
   session.host = parts.host
   session.selected_db = parts.selected_db
@@ -182,23 +182,23 @@ end
 ---@param name string the session name
 ---@param field string the fields to be set
 ---@param value any the value to be set
-M.set_session_field = function(name, field, value)
-  if M.sessions[name] then
-    M.sessions[name][field] = value
+Session.set_session_field = function(name, field, value)
+  if Session.sessions[name] then
+    Session.sessions[name][field] = value
   end
 end
 
 ---list returns all sessions
 ---@return Session[]
-M.list = function()
-  return M.sessions
+Session.list = function()
+  return Session.sessions
 end
 
 ---list returns all sessions
 ---@return Session[]
-M.list_names = function()
+Session.list_names = function()
   local names = {}
-  for k, _ in pairs(M.sessions) do
+  for k, _ in pairs(Session.sessions) do
     table.insert(names, k)
   end
   return names
@@ -207,15 +207,15 @@ end
 ---get gets a session from the sessions by name
 ---@param name string the session name to be retrieved
 ---@return Session
-M.get = function(name)
-  return M.sessions[name]
+Session.get = function(name)
+  return Session.sessions[name]
 end
 
 ---rename session
 ---@param oldName string
 ---@param newName string
-M.renameSession = function(oldName, newName)
-  local target = M.sessions[oldName]
+Session.renameSession = function(oldName, newName)
+  local target = Session.sessions[oldName]
   target.name = newName
   if target.connection_buf then
     vim.api.nvim_buf_set_name(target.connection_buf, constant.connection_buf_name .. target.name)
@@ -227,21 +227,21 @@ M.renameSession = function(oldName, newName)
     vim.api.nvim_buf_set_name(target.result_buf, constant.command_buf_name .. target.name)
   end
 
-  M.sessions[newName] = target
-  M.sessions[oldName] = nil
+  Session.sessions[newName] = target
+  Session.sessions[oldName] = nil
 end
 
 ---remove a session out of the sessions
 ---@param name string the session name to be removed
-M.remove = function(name)
-  M.sessions[name] = nil
+Session.remove = function(name)
+  Session.sessions[name] = nil
 end
 
 ---get_host returns the host of the session
 ---@param name string the session name
 ---@return string
-M.get_host = function(name)
-  local session = M.get(name)
+Session.get_host = function(name)
+  local session = Session.get(name)
   if session == nil then
     return ""
   end
@@ -253,15 +253,15 @@ M.get_host = function(name)
   ---@type string
   local host = session.host
 
-  if M.selected_db ~= nil then
-    host = host .. "/" .. M.selected_db
+  if session.selected_db ~= nil then
+    host = host .. "/" .. session.selected_db
   end
 
-  if M.params ~= nil then
-    host = host .. "/" .. M.params
+  if session.params ~= nil then
+    host = host .. "/" .. session.params
   end
 
   return host
 end
 
-return M
+return Session

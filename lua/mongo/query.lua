@@ -1,12 +1,12 @@
 local buffer = require("mongo.buffer")
 
 ---@class Query
-local M = {}
+local Query = {}
 
 ---snippet insertOne query
 ---@param session Session
 ---@param collection string
-M.insert_one = function(session, collection)
+Query.insert_one = function(session, collection)
   local queryLines = {
     string.format("db['%s'].insertOne({", collection),
     "  ",
@@ -20,7 +20,7 @@ end
 ---@param session Session
 ---@param collection string
 ---@param document? string[] | nil
-M.delete_one = function(session, collection, document)
+Query.delete_one = function(session, collection, document)
   local queryLines = {
     string.format("db['%s'].deleteOne({", collection),
   }
@@ -38,7 +38,7 @@ end
 ---@param session Session
 ---@param collection string
 ---@param document? string[] | nil
-M.update_one = function(session, collection, document)
+Query.update_one = function(session, collection, document)
   local queryLines = {
     string.format("db['%s'].updateOne({", collection),
   }
@@ -65,7 +65,7 @@ end
 ---snippet find query
 ---@param session Session
 ---@param collection string
-M.find = function(session, collection)
+Query.find = function(session, collection)
   local queryLines = {
     string.format("db['%s'].find({", collection),
     "  ",
@@ -78,4 +78,4 @@ M.find = function(session, collection)
   vim.cmd(":3")
 end
 
-return M
+return Query

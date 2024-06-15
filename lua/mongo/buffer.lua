@@ -2,7 +2,7 @@ local ss = require("mongo.session")
 local constant = require("mongo.constant")
 
 ---@class Buffer
-local M = {}
+local Buffer = {}
 
 ---delete buffer and close window
 ---@param buf number
@@ -12,22 +12,9 @@ local force_delete_buffer = function(buf)
   end
 end
 
----find buffer by name. Return -1 if not exist
----@param name string
----@return number
-local find_buffer_by_name = function(name)
-  for _, buf in ipairs(vim.api.nvim_list_bufs()) do
-    local buf_name = vim.api.nvim_buf_get_name(buf)
-    if buf_name == vim.fn.expand("%:p:h") .. "/" .. name then
-      return buf
-    end
-  end
-  return -1
-end
-
 ---create a new connection working space scratch buffer if not exist
 ---@param session Session
-M.create_connection_buf = function(session)
+Buffer.create_connection_buf = function(session)
   if not session.connection_buf then
     vim.cmd("tabnew")
 
@@ -59,9 +46,9 @@ end
 ---set contents in the connection working space
 ---@param session Session
 ---@param contents string[] each item in the table is one line
-M.set_connection_win_content = function(session, contents)
+Buffer.set_connection_win_content = function(session, contents)
   if session.connection_buf == nil then
-    M.create_connection_buf(session)
+    Buffer.create_connection_buf(session)
   end
 
   vim.api.nvim_buf_set_lines(session.connection_buf, 0, -1, true, contents)
@@ -69,7 +56,7 @@ end
 
 ---create a new command working space scratch buffer if not exist
 ---@param session Session
-M.create_command_buf = function(session)
+Buffer.create_command_buf = function(session)
   if not session.command_buf then
     vim.cmd("vsplit")
     ss.set_session_field(session.name, "command_win", vim.api.nvim_get_current_win())
@@ -109,9 +96,9 @@ end
 ---set contents in the command working space
 ---@param session Session
 ---@param contents string[] each item in the table is one line
-M.set_command_content = function(session, contents)
+Buffer.set_command_content = function(session, contents)
   if session.command_buf == nil then
-    M.create_command_buf(session)
+    Buffer.create_command_buf(session)
   end
 
   vim.api.nvim_buf_set_lines(session.command_buf, 0, -1, true, contents)
@@ -120,9 +107,9 @@ end
 ---show contents in the query result space
 ---@param session Session
 ---@param contents string[] each item in the table is one line
-M.show_result = function(session, contents)
+Buffer.show_result = function(session, contents)
   if not session.result_buf then
-    M.create_result_buf(session)
+    Buffer.create_result_buf(session)
   end
 
   vim.api.nvim_buf_set_lines(session.result_buf, 0, -1, true, contents)
@@ -130,7 +117,7 @@ end
 
 ---create a new result window and scratch buffer if not exist
 ---@param session Session
-M.create_result_buf = function(session)
+Buffer.create_result_buf = function(session)
   if not session.result_buf then
     vim.cmd("vsplit")
     ss.set_session_field(session.name, "result_win", vim.api.nvim_get_current_win())
@@ -160,7 +147,7 @@ end
 
 ---delete result buffer and close window
 ---@param session Session
-M.delete_result_win = function(session)
+Buffer.delete_result_win = function(session)
   if session.result_win ~= nil then
     vim.api.nvim_win_close(session.result_win, true)
     ss.set_session_field(session.name, "result_win", nil)
@@ -174,7 +161,7 @@ end
 
 ---clean up all buffers and close all windows
 ---@param session Session
-M.clean = function(session)
+Buffer.clean = function(session)
   local toClean = {
     "result",
     "command",
@@ -195,4 +182,4 @@ M.clean = function(session)
   vim.cmd("tabclose")
 end
 
-return M
+return Buffer

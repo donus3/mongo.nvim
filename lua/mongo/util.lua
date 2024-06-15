@@ -1,14 +1,14 @@
-local M = {}
+local Util = {}
 
 ---get text of all lines
 ---@return string[]
-M.get_all_lines = function()
+Util.get_all_lines = function()
   return vim.api.nvim_buf_get_lines(0, 0, -1, false)
 end
 
 ---get text of current line
 ---@return string
-M.get_line = function()
+Util.get_line = function()
   return vim.api.nvim_get_current_line()
 end
 
@@ -25,7 +25,7 @@ end
 ---@param op "set" | "del"
 ---@param configs MapConfig[]
 ---@return nil
-M.mapkeys = function(op, configs)
+Util.mapkeys = function(op, configs)
   for _, config in ipairs(configs) do
     if op == "set" then
       vim.keymap.set(config.mode, config.lhs, config.rhs, config.opts)
@@ -35,4 +35,4 @@ M.mapkeys = function(op, configs)
   end
 end
 
-return M
+return Util

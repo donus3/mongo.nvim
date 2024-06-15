@@ -10,22 +10,22 @@ local config = {
   find_on_collection_selected = false,
 }
 
----@class MongoDB
-local M = {}
+---@class Mongo
+local Mongo = {}
 
 ---@type Config
-M.config = config
+Mongo.config = config
 
 ---@param args Config?
 -- you can define your setup function here. Usually configurations can be merged, accepting outside params and
 -- you can also put some validation here for those.
-M.setup = function(args)
-  M.config = vim.tbl_deep_extend("force", M.config, args or {})
+Mongo.setup = function(args)
+  Mongo.config = vim.tbl_deep_extend("force", Mongo.config, args or {})
 end
 
-M.connect = function(args)
+Mongo.connect = function(args)
   local session = ss.new(args[1])
-  action.init(M.config, session)
+  action.init(Mongo.config, session)
   action.connect(session)
 
   -- clean up autocmd when leave
@@ -39,4 +39,4 @@ M.connect = function(args)
   })
 end
 
-return M
+return Mongo

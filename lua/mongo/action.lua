@@ -6,12 +6,12 @@ local ts = require("mongo.treesitter")
 local ss = require("mongo.session")
 
 ---@class Action
-local M = {}
-M.config = {}
+local Action = {}
+Action.config = {}
 
 table.unpack = table.unpack or unpack
 
-M.open_web = function()
+Action.open_web = function()
   vim.fn.system({ "open", constant.mongodb_crud_page })
 end
 
@@ -28,10 +28,10 @@ end
 ---init initializes the action
 ---@param config Config
 ---@param session Session
-M.init = function(config, session)
-  M.config = config
+Action.init = function(config, session)
+  Action.config = config
 
-  ss.set_url(session.name, M.config.default_url)
+  ss.set_url(session.name, Action.config.default_url)
   buffer.set_connection_win_content(session, { constant.host_example, "", session.url })
   buffer.create_command_buf(session)
   vim.api.nvim_set_current_win(session.connection_win)
@@ -39,9 +39,9 @@ M.init = function(config, session)
   vim.cmd(":3")
 
   vim.keymap.set("n", "-", function()
-    M.back(session)
+    Action.back(session)
   end, { buffer = session.connection_buf })
-  vim.keymap.set("n", "go", M.open_web, { buffer = session.command_buf })
+  vim.keymap.set("n", "go", Action.open_web, { buffer = session.command_buf })
 
   for _, buf in ipairs({ session.connection_buf, session.command_buf }) do
     vim.keymap.set("n", "gq", function()
@@ -125,7 +125,7 @@ local run_async_command = function(session, args, on_exit)
     -- enable the back keymaps
     vim.defer_fn(function()
       vim.keymap.set("n", "-", function()
-        M.back(session)
+        Action.back(session)
       end, { buffer = session.connection_buf })
     end, 0)
     on_exit(out)
@@ -149,7 +149,7 @@ local select_db = function(session, skip_current_line)
     end
   end
 
-  M.show_collections_async(workingSession)
+  Action.show_collections_async(workingSession)
 end
 
 ---check the input mongo url and set each part to the corresponding module variable
@@ -166,14 +166,14 @@ local checkHost = function(session)
       return
     end
 
-    M.show_dbs_async(session)
+    Action.show_dbs_async(session)
   end)
 end
 
 ---set_connect_keymaps sets the keymaps for connect
 ---@param session Session
 ---@param op "set" | "del"
-M.set_connect_keymaps = function(session, op)
+Action.set_connect_keymaps = function(session, op)
   local map = {
     {
       mode = "n",
@@ -189,15 +189,15 @@ end
 
 ---connect connects to the given host
 ---@param session Session
-M.connect = function(session)
+Action.connect = function(session)
   ss.set_session_field(session.name, "current_state", constant.state.init)
-  M.set_connect_keymaps(session, "set")
+  Action.set_connect_keymaps(session, "set")
 end
 
 ---set_show_dbs_keymaps sets the keymaps for show dbs working space
 ---@param session Session
 ---@param op "set" | "del"
-M.set_show_dbs_keymaps = function(session, op)
+Action.set_show_dbs_keymaps = function(session, op)
   local map = {
     {
       mode = "n",
@@ -213,7 +213,7 @@ end
 
 ---show_dbs_async shows the dbs
 ---@param session Session
-M.show_dbs_async = function(session)
+Action.show_dbs_async = function(session)
   run_async_command(session, "db.getMongo().getDBNames()", function(out)
     if out.code ~= 0 then
       vim.defer_fn(function()
@@ -246,7 +246,7 @@ M.show_dbs_async = function(session)
       end
 
       vim.defer_fn(function()
-        M.set_show_dbs_keymaps(session, "set")
+        Action.set_show_dbs_keymaps(session, "set")
       end, 0)
 
       table.sort(dbs_filtered)
@@ -269,13 +269,13 @@ end
 ---set_show_collections_keymap sets the keymaps for show collections working space
 ---@param session Session
 ---@param op "set" | "del"
-M.set_show_collections_keymap = function(session, op)
+Action.set_show_collections_keymap = function(session, op)
   local map = {
     {
       mode = "n",
       lhs = "<CR>",
       rhs = function()
-        M.select_collection(session)
+        Action.select_collection(session)
       end,
       opts = { buffer = session.connection_buf },
     },
@@ -283,8 +283,8 @@ M.set_show_collections_keymap = function(session, op)
       mode = "n",
       lhs = "gx",
       rhs = function()
-        M.execute_asking(session, string.format("db[%s].drop()", utils.get_line()))
-        M.show_collections_async(session)
+        Action.execute_asking(session, string.format("db[%s].drop()", utils.get_line()))
+        Action.show_collections_async(session)
       end,
       opts = { buffer = session.connection_buf },
     },
@@ -294,7 +294,7 @@ end
 
 ---show_collections_async shows the collections
 ---@param session Session
-M.show_collections_async = function(session)
+Action.show_collections_async = function(session)
   run_async_command(session, "db.getCollectionNames()", function(out)
     if out.code ~= 0 then
       vim.defer_fn(function()
@@ -319,7 +319,7 @@ M.show_collections_async = function(session)
 
       vim.defer_fn(function()
         buffer.set_connection_win_content(session, { "/** Collection List */", table.unpack(collections_result) })
-        M.set_show_collections_keymap(session, "set")
+        Action.set_show_collections_keymap(session, "set")
         ss.set_session_field(session.name, "current_state", constant.state.db_selected)
       end, 0)
 
@@ -336,14 +336,14 @@ end
 ---set_query_keymap sets the keymaps for query working space
 ---@param session Session
 ---@param op "set" | "del"
-M.set_query_keymap = function(session, op)
+Action.set_query_keymap = function(session, op)
   local map = {
     {
       mode = "n",
       lhs = "<CR>",
       rhs = function()
         local queries = utils.get_all_lines()
-        M.execute_asking(session, queries)
+        Action.execute_asking(session, queries)
       end,
       opts = { buffer = session.command_buf },
     },
@@ -385,7 +385,7 @@ end
 
 ---@param session Session
 ---@param op "set" | "del"
-M.set_result_keymap = function(session, op)
+Action.set_result_keymap = function(session, op)
   local map = {
     {
       mode = "n",
@@ -430,16 +430,16 @@ M.set_result_keymap = function(session, op)
 end
 
 ---@param session Session
-M.select_collection = function(session)
+Action.select_collection = function(session)
   ss.set_session_field(session.name, "selected_collection", utils.get_line())
 
   query.find(session, session.selected_collection)
   vim.api.nvim_set_current_win(session.command_win)
-  if M.config.find_on_collection_selected then
-    M.execute_query_fn(query.find, session.selected_collection)
+  if Action.config.find_on_collection_selected then
+    Action.execute_query_fn(query.find, session.selected_collection)
   end
 
-  M.set_query_keymap(session, "set")
+  Action.set_query_keymap(session, "set")
   ss.set_session_field(session.name, "current_state", constant.state.collection_selected)
   vim.defer_fn(function() end, 0)
 end
@@ -447,7 +447,7 @@ end
 ---execute executes the query
 ----@param session Session
 ----@param queries string
-M.execute = function(session, queries)
+Action.execute = function(session, queries)
   local query_string = queries
   if type(queries) == "table" then
     query_string = table.concat(queries, " ")
@@ -470,7 +470,7 @@ M.execute = function(session, queries)
       end
 
       buffer.create_result_buf(session)
-      M.set_result_keymap(session, "set")
+      Action.set_result_keymap(session, "set")
       vim.api.nvim_set_option_value("modifiable", true, { buf = session.result_buf })
       buffer.show_result(session, text)
       vim.api.nvim_set_current_win(session.result_win)
@@ -482,13 +482,13 @@ end
 ---execute_asking executes the query
 -----@param session Session
 -----@param queries string
-M.execute_asking = function(session, queries)
+Action.execute_asking = function(session, queries)
   vim.ui.input({ prompt = "Execute query?: [Y/n]" }, function(answer)
     if answer ~= "y" and answer ~= "Y" and answer ~= "" then
       return
     end
 
-    M.execute(session, queries)
+    Action.execute(session, queries)
   end)
 end
 
@@ -496,36 +496,36 @@ end
 ----@param session Session
 ----@param queryFunction fun(args: string)
 ----@param args string
-M.execute_query_fn = function(session, queryFunction, args)
+Action.execute_query_fn = function(session, queryFunction, args)
   queryFunction(args)
   local queries = utils.get_all_lines()
-  M.execute(session, queries)
+  Action.execute(session, queries)
 end
 
 ---back go back to the previous state
 ---@param session Session
-M.back = function(session)
+Action.back = function(session)
   if session.current_state == constant.state.collection_selected then
-    M.set_query_keymap(session, "del")
+    Action.set_query_keymap(session, "del")
     ss.set_session_field(session.name, "current_state", constant.state.db_selected)
     ss.set_session_field(session.name, "selected_collection", "")
     ss.set_session_field(session.name, "collections", {})
     buffer.delete_result_win(session)
     buffer.set_command_content(session, {})
-    M.show_collections_async(session)
+    Action.show_collections_async(session)
   elseif session.current_state == constant.state.db_selected then
-    M.set_show_collections_keymap(session, "del")
+    Action.set_show_collections_keymap(session, "del")
     ss.set_session_field(session.name, "current_state", constant.state.connected)
     ss.set_session_field(session.name, "dbs_filtered", {})
     ss.set_session_field(session.name, "selected_db", "")
-    M.show_dbs_async(session)
+    Action.show_dbs_async(session)
   elseif session.current_state == constant.state.connected then
-    M.set_show_dbs_keymaps(session, "del")
+    Action.set_show_dbs_keymaps(session, "del")
     ss.set_session_field(session.name, "current_state", constant.state.init)
     ss.set_session_field(session.name, "is_legacy", false)
     buffer.set_connection_win_content(session, { constant.host_example, "", session.url })
-    M.set_connect_keymaps(session, "set")
+    Action.set_connect_keymaps(session, "set")
   end
 end
 
-return M
+return Action

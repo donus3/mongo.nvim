@@ -1,8 +1,8 @@
-M = {}
+Treesitter = {}
 
 ---run treesitter query to get entire document under the current cursor
 ---@return string | nil
-M.getDocument = function()
+Treesitter.getDocument = function()
   local ts = vim.treesitter
   local parsers = require("nvim-treesitter.parsers")
   local ts_util = require("nvim-treesitter.ts_utils")
@@ -31,4 +31,4 @@ M.getDocument = function()
   end
 end
 
-return M
+return Treesitter

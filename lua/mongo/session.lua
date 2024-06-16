@@ -109,8 +109,8 @@ local checkHost = function(url)
   if result.host == nil then
     vim.notify(
       "Unsupported mongodb URL "
-      .. url
-      .. ". Please use mongodb://username:password@host[/db_name][/?options] or mongodb://host[/db_name][/?options]",
+        .. url
+        .. ". Please use mongodb://username:password@host[/db_name][/?options] or mongodb://host[/db_name][/?options]",
       vim.log.levels.ERROR
     )
   end

@@ -105,7 +105,7 @@ local run_async_command = function(session, args, on_exit)
 
   local full_cmd = {
     cmd,
-    host .. "/" .. (session.selected_db or ""),
+    host,
     "--authenticationDatabase",
     session.auth_source,
     "--quiet",

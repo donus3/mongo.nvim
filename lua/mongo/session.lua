@@ -129,6 +129,10 @@ end
 ---@param name string|nil the session name
 ---@return Session new_session new empty session
 Session.new = function(name)
+  if name ~= nil and Session.get(name) ~= nil then
+    return Session.get(name)
+  end
+
   local session_name = name
   if session_name == nil then
     local now = os.clock()
@@ -198,8 +202,10 @@ end
 ---@return Session[]
 Session.list_names = function()
   local names = {}
-  for k, _ in pairs(Session.sessions) do
-    table.insert(names, k)
+  for k, v in pairs(Session.sessions) do
+    if v ~= nil then
+      table.insert(names, k)
+    end
   end
   return names
 end

@@ -216,6 +216,7 @@ end
 Action.show_dbs_async = function(session)
   run_async_command(session, "db.getMongo().getDBNames()", function(out)
     if out.code ~= 0 then
+      ss.set_url(session.name, "")
       vim.defer_fn(function()
         vim.notify(out.stderr, vim.log.levels.ERROR)
       end, 0)
@@ -297,6 +298,7 @@ end
 Action.show_collections_async = function(session)
   run_async_command(session, "db.getCollectionNames()", function(out)
     if out.code ~= 0 then
+      ss.set_session_field(session.name, "selected_db", nil)
       vim.defer_fn(function()
         vim.notify(out.stderr, vim.log.levels.ERROR)
       end, 0)

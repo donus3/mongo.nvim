@@ -59,6 +59,7 @@ end
 Buffer.create_command_buf = function(session)
   if not session.command_buf then
     vim.cmd("vsplit")
+    local split_buf = vim.api.nvim_get_current_buf()
     ss.set_session_field(session.name, "command_win", vim.api.nvim_get_current_win())
 
     -- resize the connection window
@@ -172,14 +173,20 @@ Buffer.clean = function(session)
     local bufName = v .. "_buf"
     local winName = v .. "_win"
     if session[bufName] ~= nil then
+      if vim.api.nvim_buf_is_valid(session[bufName]) then
+        vim.api.nvim_buf_delete(session[bufName], { force = true })
+      end
       ss.set_session_field(session.name, bufName, nil)
       if session[winName] ~= nil then
+        if vim.api.nvim_win_is_valid(session[winName]) then
+          vim.api.nvim_win_close(session[winName], true)
+        end
         ss.set_session_field(session.name, winName, nil)
       end
     end
   end
 
-  vim.cmd("tabclose")
+  ss.remove(session.name)
 end
 
 return Buffer

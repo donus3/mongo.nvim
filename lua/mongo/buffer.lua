@@ -22,6 +22,7 @@ Buffer.create_connection_buf = function(session)
     ss.set_session_field(session.name, "connection_win", vim.api.nvim_tabpage_get_win(0))
     local tab_buf = vim.api.nvim_get_current_buf()
     ss.set_session_field(session.name, "connection_buf", vim.api.nvim_create_buf(false, true))
+    vim.api.nvim_buf_set_keymap(session.connection_buf, "n", "<c-o>", "", {})
     vim.api.nvim_buf_set_name(session.connection_buf, constant.connection_buf_name .. session.name)
     vim.api.nvim_win_set_buf(session.connection_win, session.connection_buf)
     vim.bo[session.connection_buf].filetype = "mongo-connection"
@@ -74,6 +75,7 @@ Buffer.create_command_buf = function(session)
     end
 
     ss.set_session_field(session.name, "command_buf", vim.api.nvim_create_buf(false, true))
+    vim.api.nvim_buf_set_keymap(session.command_buf, "n", "<c-o>", "", {})
     vim.api.nvim_buf_set_name(session.command_buf, constant.command_buf_name .. session.name)
     vim.api.nvim_win_set_buf(session.command_win, session.command_buf)
     vim.bo[session.command_buf].filetype = "javascript"
@@ -123,6 +125,7 @@ Buffer.create_result_buf = function(session)
     vim.cmd("vsplit")
     ss.set_session_field(session.name, "result_win", vim.api.nvim_get_current_win())
     ss.set_session_field(session.name, "result_buf", vim.api.nvim_create_buf(false, true))
+    vim.api.nvim_buf_set_keymap(session.result_buf, "n", "<c-o>", "", {})
     vim.api.nvim_buf_set_name(session.result_buf, constant.result_buf_name .. session.name)
     vim.api.nvim_win_set_buf(session.result_win, session.result_buf)
     vim.bo[session.result_buf].filetype = "javascript"

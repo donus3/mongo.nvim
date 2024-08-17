@@ -2,6 +2,7 @@ local query = require("mongo.query")
 local utils = require("mongo.util")
 local buffer = require("mongo.buffer")
 local client = require("mongo.client")
+local ts = require("mongo.treesitter")
 
 QueryAction = {}
 
@@ -14,6 +15,12 @@ local set_query_keymap = function(session, op)
       mode = "n",
       lhs = "<CR>",
       rhs = function()
+        local queryFromAboveDelimiter = ts.getQuery()
+        if queryFromAboveDelimiter ~= nil then
+          QueryAction.execute(session, queryFromAboveDelimiter)
+          return
+        end
+
         local queries = utils.get_all_lines()
         QueryAction.execute_asking(session, queries)
       end,

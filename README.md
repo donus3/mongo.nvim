@@ -50,15 +50,39 @@ require("mongo").setup({
 
 ```
 
+### Query
+In the query workspace, you can only execute queries in range by surrounding the query with `;;`;
+```js
+db.collection.find({ key: 'bar' }) // cursor on this line and Enter won't execute { key: 'foo' }
+
+;;
+
+db.collection.find({ key: 'foo' })
+```
+
 ## Keymaps
+
+### Session Workspace
+|Keymap|Description|
+|----|----|
+|`gf`|Fuzzy find sessions|
+|`gq`|Quit|
 
 ### Connection Workspace
 |Keymap|Description|
 |----|----|
-|`<CR>`|Select/Confirm the context under cursor|
-|`-`|Back to the previous menu|
+|`<CR>`| Connect to the mongo server|
+
+### Database Workspace
+|Keymap|Description|
+|----|----|
+|`<CR>`|Select the database|
+
+### Collection Workspace
+|Keymap|Description|
+|----|----|
+|`<CR>`|Select the database|
 |`gx`|Drop the collection under cursor|
-|`gq`|Quit|
 
 ### Query Workspace
 |Keymap|Description|
@@ -68,7 +92,6 @@ require("mongo").setup({
 |`gf`|Find the query snippet|
 |`gu`|Update the query snippet|
 |`gd`|Delete the query snippet|
-|`gq`|Quit|
 
 ### Result Workspace
 |Keymap|Description|

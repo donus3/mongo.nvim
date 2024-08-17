@@ -7,7 +7,7 @@ Treesitter.getDocument = function()
   local parsers = require("nvim-treesitter.parsers")
   local ts_util = require("nvim-treesitter.ts_utils")
 
-  local query_string = [[
+  local query_object_in_array_string = [[
   (expression_statement
     (array
       (object) @root_object
@@ -20,9 +20,64 @@ Treesitter.getDocument = function()
   local root = tree:root()
   local lang = parser:lang()
 
-  local query = ts.query.parse(lang, query_string)
+  for _, match, _ in ts.query.parse(lang, query_object_in_array_string):iter_matches(root, 0) do
+    for _, node in pairs(match) do
+      if ts.is_ancestor(node, ts_util.get_node_at_cursor()) then
+        return ts.get_node_text(node, 0)
+      end
+    end
+  end
 
-  for _, match, _ in query:iter_matches(root, 0) do
+  local query_object_string = [[
+  (expression_statement
+    (object) @root_object
+  )
+]]
+
+  for _, match, _ in ts.query.parse(lang, query_object_string):iter_matches(root, 0) do
+    for _, node in pairs(match) do
+      if ts.is_ancestor(node, ts_util.get_node_at_cursor()) then
+        return ts.get_node_text(node, 0)
+      end
+    end
+  end
+end
+
+---run treesitter query to get target query under the current cursor
+---@return string | nil
+Treesitter.getQuery = function()
+  local ts = vim.treesitter
+  local parsers = require("nvim-treesitter.parsers")
+  local ts_util = require("nvim-treesitter.ts_utils")
+
+  local query_string = [[
+    (program
+      (expression_statement) @root_expression
+      (empty_statement)
+    )
+]]
+
+  local parser = parsers.get_parser()
+  local tree = parser:parse()[1]
+  local root = tree:root()
+  local lang = parser:lang()
+
+  for _, match, _ in ts.query.parse(lang, query_string):iter_matches(root, 0) do
+    for _, node in pairs(match) do
+      if ts.is_ancestor(node, ts_util.get_node_at_cursor()) then
+        return ts.get_node_text(node, 0)
+      end
+    end
+  end
+
+  local query_string_2 = [[
+    (program
+      (empty_statement)
+      (expression_statement) @root_expression
+    )
+]]
+
+  for _, match, _ in ts.query.parse(lang, query_string_2):iter_matches(root, 0) do
     for _, node in pairs(match) do
       if ts.is_ancestor(node, ts_util.get_node_at_cursor()) then
         return ts.get_node_text(node, 0)

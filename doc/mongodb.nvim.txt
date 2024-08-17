@@ -1,4 +1,4 @@
-*mongodb.nvim.txt*        For Neovim >= 0.8.0        Last change: 2024 July 08
+*mongodb.nvim.txt*       For Neovim >= 0.8.0       Last change: 2024 August 17
 
 ==============================================================================
 Table of Contents                             *mongodb.nvim-table-of-contents*
@@ -48,10 +48,10 @@ USAGE                                          *mongodb.nvim-mongo.nvim-usage*
 
 >vim
     # explicitly session name
-    :Monogo <session-name>
+    :Mongo <session-name>
     
     # randomly generate a session name (math.random)
-    :Monogo
+    :Mongo
 <
 
 

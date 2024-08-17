@@ -81,7 +81,7 @@ db.collection.find({ key: 'foo' })
 ### Collection Workspace
 |Keymap|Description|
 |----|----|
-|`<CR>`|Select the database|
+|`<CR>`|Select the collection|
 |`gx`|Drop the collection under cursor|
 
 ### Query Workspace

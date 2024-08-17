@@ -17,7 +17,7 @@ local set_query_keymap = function(session, op)
       rhs = function()
         local queryFromAboveDelimiter = ts.getQuery()
         if queryFromAboveDelimiter ~= nil then
-          QueryAction.execute(session, queryFromAboveDelimiter)
+          QueryAction.execute_asking(session, queryFromAboveDelimiter)
           return
         end
 

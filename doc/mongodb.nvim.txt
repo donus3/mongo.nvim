@@ -76,17 +76,48 @@ DEFAULT CONFIGURATION          *mongodb.nvim-mongo.nvim-default-configuration*
 <
 
 
+QUERY ~
+
+In the query workspace, you can only execute queries in range by surrounding
+the query with `;;`;
+
+>js
+    db.collection.find({ key: 'bar' }) // cursor on this line and Enter won't execute { key: 'foo' }
+    
+    ;;
+    
+    db.collection.find({ key: 'foo' })
+<
+
+
 KEYMAPS                                      *mongodb.nvim-mongo.nvim-keymaps*
 
+
+SESSION WORKSPACE ~
+
+  Keymap   Description
+  -------- ---------------------
+  gf       Fuzzy find sessions
+  gq       Quit
 
 CONNECTION WORKSPACE ~
 
   Keymap   Description
-  -------- -----------------------------------------
-  <CR>     Select/Confirm the context under cursor
-  -        Back to the previous menu
+  -------- -----------------------------
+  <CR>     Connect to the mongo server
+
+DATABASE WORKSPACE ~
+
+  Keymap   Description
+  -------- ---------------------
+  <CR>     Select the database
+
+COLLECTION WORKSPACE ~
+
+  Keymap   Description
+  -------- ----------------------------------
+  <CR>     Select the database
   gx       Drop the collection under cursor
-  gq       Quit
 
 QUERY WORKSPACE ~
 
@@ -97,7 +128,6 @@ QUERY WORKSPACE ~
   gf       Find the query snippet
   gu       Update the query snippet
   gd       Delete the query snippet
-  gq       Quit
 
 RESULT WORKSPACE ~
 

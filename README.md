@@ -25,10 +25,10 @@ lazy.nvim
 ## Usage
 ```vim
 # explicitly session name
-:Monogo <session-name>
+:Mongo <session-name>
 
 # randomly generate a session name (math.random)
-:Monogo
+:Mongo
 ```
 
 ## Features

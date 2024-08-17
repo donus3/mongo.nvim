@@ -1,6 +1,7 @@
-local action = require("mongo.action")
+local client = require("mongo.client")
 local buffer = require("mongo.buffer")
 local ss = require("mongo.session")
+local action = require("mongo.actions")
 
 ---@class Config
 ---@field default_url string the default connection string URL
@@ -24,9 +25,9 @@ Mongo.setup = function(args)
 end
 
 Mongo.connect = function(args)
-  local session = ss.new(args[1])
-  action.init(Mongo.config, session)
-  action.connect(session)
+  local session = ss.new(args[1], Mongo.config)
+  buffer.init(session)
+  action.init(session)
 
   -- clean up autocmd when leave
   local group = vim.api.nvim_create_augroup("MongoDBNvimLeave", { clear = true })

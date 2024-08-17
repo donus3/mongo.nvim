@@ -12,7 +12,7 @@ Query.insert_one = function(session, collection)
     "  ",
     "})",
   }
-  buffer.set_command_content(session, { "/** Insert One */", table.unpack(queryLines) })
+  buffer.set_query_content(session, { "/** Insert One */", table.unpack(queryLines) })
   vim.cmd(":3")
 end
 
@@ -30,7 +30,7 @@ Query.delete_one = function(session, collection, document)
     table.insert(queryLines, "  ")
   end
   table.insert(queryLines, "})")
-  buffer.set_command_content(session, { "/** Delete One */", table.unpack(queryLines) })
+  buffer.set_query_content(session, { "/** Delete One */", table.unpack(queryLines) })
   vim.cmd(":3")
 end
 
@@ -58,7 +58,7 @@ Query.update_one = function(session, collection, document)
 
   table.insert(queryLines, "})")
 
-  buffer.set_command_content(session, { "/** Update One */", table.unpack(queryLines) })
+  buffer.set_query_content(session, { "/** Update One */", table.unpack(queryLines) })
   vim.cmd(":3")
 end
 
@@ -74,7 +74,7 @@ Query.find = function(session, collection)
     "  .toArray()",
   }
 
-  buffer.set_command_content(session, { table.unpack(queryLines) })
+  buffer.set_query_content(session, { table.unpack(queryLines) })
   vim.cmd(":3")
 end
 

@@ -11,8 +11,10 @@ Constant.host_example = "/** mongodb://user:pass@localhost:27017/?authSource=adm
 Constant.host_fallback = "mongodb://localhost:27017"
 Constant.mongodb_crud_page = "https://www.mongodb.com/docs/manual/crud/"
 
-Constant.command_buf_name = "MongoDB Working Space "
-Constant.result_buf_name = "MongoDB Query Results "
+Constant.query_buf_name = "MongoDB Query "
+Constant.result_buf_name = "MongoDB Results "
 Constant.connection_buf_name = "MongoDB Connection "
+Constant.collection_buf_name = "MongoDB Collections "
+Constant.database_buf_name = "MongoDB Databases "
 
 return Constant

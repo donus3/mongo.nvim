@@ -14,18 +14,21 @@ local Session = {}
 ---@field selected_collection string | nil
 ---@field selected_db string | nil
 ---@field collections string[]
----@field query_win_number number | nil
----@field result_win_number number | nil
 ---@field dbs_filtered string[]
 ---@field current_state string state machine: init -> connected -> db_selected -> collection_selected
 ---@field is_legacy boolean | nil
----@field command_buf number | nil
----@field command_win number | nil
+---@field query_buf number | nil
+---@field query_win number | nil
 ---@field result_buf number | nil
 ---@field result_win number | nil
 ---@field connection_buf number | nil
 ---@field connection_win number | nil
+---@field collection_buf number | nil
+---@field collection_win number | nil
+---@field database_buf number | nil
+---@field database_win number | nil
 ---@field tabpage_num number | nil
+---@field config Config | nil
 
 ---@type { [string]: Session }
 Session.sessions = {}
@@ -107,12 +110,14 @@ local checkHost = function(url)
   end
 
   if result.host == nil then
-    vim.notify(
-      "Unsupported mongodb URL "
-        .. url
-        .. ". Please use mongodb://username:password@host[/db_name][/?options] or mongodb://host[/db_name][/?options]",
-      vim.log.levels.ERROR
-    )
+    vim.defer_fn(function()
+      vim.notify(
+        "Unsupported mongodb URL "
+          .. url
+          .. ". Please use mongodb://username:password@host[/db_name][/?options] or mongodb://host[/db_name][/?options]",
+        vim.log.levels.ERROR
+      )
+    end, 0)
   end
 
   for host, db_name in result.host:gmatch("(.*)/(.*)") do
@@ -127,8 +132,9 @@ end
 
 ---new creates a new session and add it to the sessions
 ---@param name string|nil the session name
+---@param config Config
 ---@return Session new_session new empty session
-Session.new = function(name)
+Session.new = function(name, config)
   if name ~= nil and Session.get(name) ~= nil then
     return Session.get(name)
   end
@@ -150,18 +156,21 @@ Session.new = function(name)
     selected_collection = nil,
     selected_db = nil,
     collections = {},
-    query_win_number = nil,
-    result_win_number = nil,
     dbs_filtered = {},
     current_state = constant.state.init,
     is_legacy = nil,
-    command_buf = nil,
-    command_win = nil,
+    query_buf = nil,
+    query_win = nil,
     result_buf = nil,
     result_win = nil,
+    collection_buf = nil,
+    collection_win = nil,
     connection_buf = nil,
     connection_win = nil,
+    database_buf = nil,
+    database_win = nil,
     tabpage_num = nil,
+    config = config,
   }
   Session.sessions[session_name] = new_session
   return new_session
@@ -223,14 +232,17 @@ end
 Session.renameSession = function(oldName, newName)
   local target = Session.sessions[oldName]
   target.name = newName
-  if target.connection_buf then
-    vim.api.nvim_buf_set_name(target.connection_buf, constant.connection_buf_name .. target.name)
-  end
-  if target.command_buf then
-    vim.api.nvim_buf_set_name(target.command_buf, constant.command_buf_name .. target.name)
-  end
-  if target.result_buf then
-    vim.api.nvim_buf_set_name(target.result_buf, constant.command_buf_name .. target.name)
+
+  local toRename = {
+    "result",
+    "query",
+    "collection",
+  }
+
+  for _, v in ipairs(toRename) do
+    if target[v .. "_buf"] then
+      vim.api.nvim_buf_set_name(target[v .. "_buf"], constant[v .. "_buf_name"] .. " : " .. target.name)
+    end
   end
 
   Session.sessions[newName] = target

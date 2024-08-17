@@ -116,7 +116,7 @@ COLLECTION WORKSPACE ~
 
   Keymap   Description
   -------- ----------------------------------
-  <CR>     Select the database
+  <CR>     Select the collection
   gx       Drop the collection under cursor
 
 QUERY WORKSPACE ~

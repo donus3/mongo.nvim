@@ -7,25 +7,23 @@ local Client = {}
 ---@param session Session
 ---@param cb fun()
 Client.check_is_legacy_async = function(session, cb)
-  if session.is_legacy == nil then
-    local host = ss.get_host(session.name)
-    local full_cmd = {
-      "mongosh",
-      host,
-      "--authenticationDatabase",
-      session.auth_source,
-      "--quiet",
-    }
+  local host = ss.get_host(session.name)
+  local full_cmd = {
+    "mongosh",
+    host,
+    "--authenticationDatabase",
+    session.auth_source,
+    "--quiet",
+  }
 
-    vim.system(full_cmd, { text = true }, function(out)
-      if out.stderr:find("MongoServerSelectionError") then
-        ss.set_session_field(session.name, "is_legacy", true)
-      else
-        ss.set_session_field(session.name, "is_legacy", false)
-      end
-      cb()
-    end)
-  end
+  vim.system(full_cmd, { text = true }, function(out)
+    if out.stderr:find("MongoServerSelectionError") then
+      ss.set_session_field(session.name, "is_legacy", true)
+    else
+      ss.set_session_field(session.name, "is_legacy", false)
+    end
+    cb()
+  end)
 end
 
 ---run_command run mongosh or mongo with given args asynchronously

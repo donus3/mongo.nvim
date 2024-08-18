@@ -15,7 +15,6 @@ local Session = {}
 ---@field selected_db string | nil
 ---@field collections string[]
 ---@field dbs_filtered string[]
----@field current_state string state machine: init -> connected -> db_selected -> collection_selected
 ---@field is_legacy boolean | nil
 ---@field query_buf number | nil
 ---@field query_win number | nil
@@ -36,19 +35,18 @@ Session.sessions = {}
 ---get_params_and_auth_source extracts authSource and params from options
 ---and returns them as table
 ---@param params string
----@param options string
 ---@return table
-local get_params_and_auth_source = function(params, options)
+local get_params_and_auth_source = function(params)
   local result = {}
 
   if params ~= nil then
-    for authSource in params:gmatch("[&]?auth[S|s]ource=(%w+)[&]?") do
-      if authSource ~= nil then
-        result.auth_source = authSource
+    for auth_source in params:gmatch("[&]?auth[S|s]ource=([%w_-]+)[&]?") do
+      if auth_source ~= nil then
+        result.auth_source = auth_source
       end
     end
 
-    local excludeAuthSourceOptions = options:gsub("[&]?authSource=%w+[&]?", "")
+    local excludeAuthSourceOptions = params:gsub("[&]?authSource=[%w_-]+[&]?", "")
     if excludeAuthSourceOptions ~= nil and excludeAuthSourceOptions ~= "?" then
       result.params = excludeAuthSourceOptions
     end
@@ -67,14 +65,18 @@ local extract_options = function(url, options)
   if options ~= nil then
     if options:match("^%?.*$") == nil then
       -- there is a db name in the URL
-      for db_name, params in url:gmatch("(%w+)(/%?.*)$") do
-        result.selected_db = db_name
-        local params_and_auth_source = get_params_and_auth_source(params, options)
-        result.auth_source = params_and_auth_source.auth_source
-        result.params = params_and_auth_source.params
+      for db_name, _, params in options:gmatch("([%w_-]+)(%??)(.*)$") do
+        if db_name ~= nil then
+          result.selected_db = db_name
+        end
+        if params ~= "" then
+          local params_and_auth_source = get_params_and_auth_source(params)
+          result.auth_source = params_and_auth_source.auth_source
+          result.params = params_and_auth_source.params
+        end
       end
     else
-      local params_and_auth_source = get_params_and_auth_source(options, options)
+      local params_and_auth_source = get_params_and_auth_source(options)
       result.auth_source = params_and_auth_source.auth_source
       result.params = params_and_auth_source.params
     end
@@ -95,6 +97,7 @@ local checkHost = function(url)
     result.password = password
     result.host = host
     local params_and_auth_source = extract_options(url, options)
+    result.selected_db = params_and_auth_source.selected_db
     result.auth_source = params_and_auth_source.auth_source
     result.params = params_and_auth_source.params
   end
@@ -104,6 +107,7 @@ local checkHost = function(url)
     for host, options in url:gmatch("mongodb://([%w|:|%d]+)[/]?(.*)$") do
       result.host = host
       local params_and_auth_source = extract_options(url, options)
+      result.selected_db = params_and_auth_source.selected_db
       result.auth_source = params_and_auth_source.auth_source
       result.params = params_and_auth_source.params
     end
@@ -118,13 +122,6 @@ local checkHost = function(url)
         vim.log.levels.ERROR
       )
     end, 0)
-  end
-
-  for host, db_name in result.host:gmatch("(.*)/(.*)") do
-    if db_name ~= nil then
-      result.host = host
-      result.selected_db = db_name
-    end
   end
 
   return result
@@ -157,7 +154,6 @@ Session.new = function(name, config)
     selected_db = nil,
     collections = {},
     dbs_filtered = {},
-    current_state = constant.state.init,
     is_legacy = nil,
     query_buf = nil,
     query_win = nil,
@@ -181,6 +177,7 @@ end
 ---@param url string the mongodb url to be set
 Session.set_url = function(name, url)
   local parts = checkHost(url)
+  print("donus: ", vim.inspect(parts))
   local session = Session.sessions[name]
   session.url = url
   session.host = parts.host
@@ -241,7 +238,9 @@ Session.renameSession = function(oldName, newName)
 
   for _, v in ipairs(toRename) do
     if target[v .. "_buf"] then
-      vim.api.nvim_buf_set_name(target[v .. "_buf"], constant[v .. "_buf_name"] .. " : " .. target.name)
+      vim.defer_fn(function()
+        vim.api.nvim_buf_set_name(target[v .. "_buf"], constant[v .. "_buf_name"] .. " : " .. target.name)
+      end, 0)
     end
   end
 
@@ -275,7 +274,7 @@ Session.get_host = function(name)
     host = host .. "/" .. session.selected_db
   end
 
-  if session.params ~= nil then
+  if session.params ~= nil and session.params ~= "" then
     host = host .. "/" .. session.params
   end
 

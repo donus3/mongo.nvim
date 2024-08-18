@@ -1,7 +1,6 @@
 local utils = require("mongo.util")
 local ts = require("mongo.treesitter")
 local query = require("mongo.query")
-local buffer = require("mongo.buffer")
 
 ResultAction = {}
 
@@ -13,13 +12,9 @@ local set_result_keymap = function(session, op)
       mode = "n",
       lhs = "e",
       rhs = function()
-        local result = ts.getDocument()
-        if result ~= nil then
-          local to_update_object = {}
-          for s in result:gmatch("[^\r\n]+") do
-            table.insert(to_update_object, s)
-          end
-          query.update_one(session, session.selected_collection, to_update_object)
+        local lines, id = ts.getDocument()
+        if lines ~= nil then
+          query.update_one(session, session.selected_collection, { lines, id })
           vim.api.nvim_set_current_win(session.query_win)
         end
       end,
@@ -29,13 +24,9 @@ local set_result_keymap = function(session, op)
       mode = "n",
       lhs = "d",
       rhs = function()
-        local result = ts.getDocument()
-        if result ~= nil then
-          local to_update_object = {}
-          for s in result:gmatch("[^\r\n]+") do
-            table.insert(to_update_object, s)
-          end
-          query.delete_one(session, session.selected_collection, to_update_object)
+        local _, id = ts.getDocument()
+        if id ~= nil then
+          query.delete_one(session, session.selected_collection, id)
           vim.api.nvim_set_current_win(session.query_win)
         end
       end,

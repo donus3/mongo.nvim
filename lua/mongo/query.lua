@@ -19,13 +19,13 @@ end
 ---snippet deleteOne query
 ---@param session Session
 ---@param collection string
----@param document? string[] | nil
-Query.delete_one = function(session, collection, document)
+---@param identifier? string | nil
+Query.delete_one = function(session, collection, identifier)
   local queryLines = {
     string.format("db['%s'].deleteOne({", collection),
   }
-  if document ~= nil and document[2] ~= nil then
-    table.insert(queryLines, document[2])
+  if identifier ~= nil then
+    table.insert(queryLines, "  " .. identifier)
   else
     table.insert(queryLines, "  ")
   end
@@ -37,25 +37,28 @@ end
 ---snippet updateOne query
 ---@param session Session
 ---@param collection string
----@param document? string[] | nil
+---@param document? table<string[], string> | nil
 Query.update_one = function(session, collection, document)
   local queryLines = {
     string.format("db['%s'].updateOne({", collection),
   }
 
   if document ~= nil and document[2] ~= nil then
-    table.insert(queryLines, document[2])
+    table.insert(queryLines, "  " .. document[2])
   else
     table.insert(queryLines, "  ")
   end
 
   table.insert(queryLines, "}, {")
-  table.insert(queryLines, "  $set: ")
 
-  for _, line in ipairs(document or { "  {}" }) do
-    table.insert(queryLines, line)
+  if document ~= nil and document[1] ~= nil then
+    table.insert(queryLines, "  $set: ")
+    for _, line in ipairs(document[1]) do
+      table.insert(queryLines, line)
+    end
+  else
+    table.insert(queryLines, "  {}")
   end
-
   table.insert(queryLines, "})")
 
   buffer.set_query_content(session, { "/** Update One */", table.unpack(queryLines) })
@@ -65,14 +68,18 @@ end
 ---snippet find query
 ---@param session Session
 ---@param collection string
-Query.find = function(session, collection)
+---@param filter? string | nil
+Query.find = function(session, collection, filter)
   local queryLines = {
     string.format("db['%s'].find({", collection),
-    "  ",
-    "})",
-    "  .limit(10)",
-    "  .toArray()",
   }
+
+  if filter ~= nil then
+    table.insert(queryLines, "  " .. filter)
+  end
+  table.insert(queryLines, "})")
+  table.insert(queryLines, "  .limit(10)")
+  table.insert(queryLines, "  .toArray()")
 
   buffer.set_query_content(session, { table.unpack(queryLines) })
   vim.cmd(":3")

@@ -177,7 +177,6 @@ end
 ---@param url string the mongodb url to be set
 Session.set_url = function(name, url)
   local parts = checkHost(url)
-  print("donus: ", vim.inspect(parts))
   local session = Session.sessions[name]
   session.url = url
   session.host = parts.host

@@ -15,9 +15,9 @@ local set_query_keymap = function(session, op)
       mode = "n",
       lhs = "<CR>",
       rhs = function()
-        local queryFromAboveDelimiter = ts.getQuery()
-        if queryFromAboveDelimiter ~= nil then
-          QueryAction.execute_asking(session, queryFromAboveDelimiter)
+        local queryWithInBeginEndScope = ts.getQueryInScope()
+        if queryWithInBeginEndScope ~= nil then
+          QueryAction.execute_asking(session, queryWithInBeginEndScope)
           return
         end
 

@@ -1,4 +1,3 @@
-local client = require("mongo.client")
 local buffer = require("mongo.buffer")
 local ss = require("mongo.session")
 local action = require("mongo.actions")

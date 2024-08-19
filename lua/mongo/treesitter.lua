@@ -56,45 +56,56 @@ end
 
 ---run treesitter query to get target query under the current cursor
 ---@return string | nil
-Treesitter.getQuery = function()
+Treesitter.getQueryInScope = function()
   local ts = vim.treesitter
   local parsers = require("nvim-treesitter.parsers")
   local ts_util = require("nvim-treesitter.ts_utils")
 
   local query_string = [[
-    (program
-      (expression_statement) @root_expression
-      (empty_statement)
-    )
+  ((identifier) @scope
+    (#any-of? @scope "begin" "end")
+    (#has-ancestor? @scope program)) @scope_program
 ]]
 
   local parser = parsers.get_parser()
   local tree = parser:parse()[1]
   local root = tree:root()
   local lang = parser:lang()
+  local query = ts.query.parse(lang, query_string)
 
-  for _, match, _ in ts.query.parse(lang, query_string):iter_matches(root, 0) do
-    for _, node in pairs(match) do
-      if ts.is_ancestor(node, ts_util.get_node_at_cursor()) then
-        return ts.get_node_text(node, 0)
+  local node_at_cursor = ts.get_node()
+  local cursor_start_line = node_at_cursor:range()
+
+  local result_start_line = -1
+  local result_end_line = 1000000
+
+  for _, match, _ in query:iter_matches(root, 0, 0, -1, { all = true }) do
+    for id, nodes in pairs(match) do
+      local node = nodes[1]
+      local name = query.captures[id]
+      local node_name = ts.get_node_text(node, 0)
+      if name == "scope_program" then
+        local scope_start_line = node:range()
+        print("scope start line: ", scope_start_line, node_name)
+        if node_name == "begin" then
+          local new_distance = cursor_start_line - scope_start_line
+          local current_distance = cursor_start_line - result_start_line
+          if new_distance >= 0 and new_distance <= current_distance then
+            result_start_line = scope_start_line
+          end
+        elseif node_name == "end" then
+          local new_distance = scope_start_line - cursor_start_line
+          local current_distance = result_end_line - cursor_start_line
+          if new_distance >= 0 and new_distance <= current_distance then
+            result_end_line = scope_start_line
+          end
+        end
       end
     end
   end
 
-  local query_string_2 = [[
-    (program
-      (empty_statement)
-      (expression_statement) @root_expression
-    )
-]]
-
-  for _, match, _ in ts.query.parse(lang, query_string_2):iter_matches(root, 0) do
-    for _, node in pairs(match) do
-      if ts.is_ancestor(node, ts_util.get_node_at_cursor()) then
-        return ts.get_node_text(node, 0)
-      end
-    end
-  end
+  local lines = vim.api.nvim_buf_get_lines(0, result_start_line + 1, result_end_line, false)
+  return lines
 end
 
 return Treesitter

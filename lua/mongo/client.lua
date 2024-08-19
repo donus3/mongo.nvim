@@ -60,7 +60,6 @@ Client.run_async_command = function(session, args, on_exit)
   end
 
   return vim.system(full_cmd, { text = true }, function(out)
-    print(vim.inspect(out))
     on_exit(out)
   end)
 end

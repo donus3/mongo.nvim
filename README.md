@@ -51,14 +51,27 @@ require("mongo").setup({
 ```
 
 ### Query
-In the query workspace, you can only execute queries in range by surrounding the query with `;;`;
-```js
-db.collection.find({ key: 'bar' }) // cursor on this line and Enter won't execute { key: 'foo' }
+In the query workspace, you can only execute queries in range by surrounding the query with `begin` and `end` 
+scope declaration.
 
-;;
+```js
+// first scope
+begin
+
+// if the cursor on this line, Enter key press won't execute the second scope
+db.collection.find({ key: 'bar' }) 
+
+end
+
+// second scope
+begin
 
 db.collection.find({ key: 'foo' })
+
+end
 ```
+
+If there is no `begin` and `end` scope, the whole query will be executed.
 
 ## Keymaps
 

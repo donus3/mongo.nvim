@@ -9,7 +9,7 @@ local Client = {}
 Client.check_is_legacy_async = function(session, cb)
   local host = ss.get_host(session.name)
   local full_cmd = {
-    "mongosh",
+    session.config.mongosh_binary_path,
     host,
     "--authenticationDatabase",
     session.auth_source,
@@ -17,7 +17,7 @@ Client.check_is_legacy_async = function(session, cb)
   }
 
   vim.system(full_cmd, { text = true }, function(out)
-    if out.stderr:find("MongoServerSelectionError") then
+    if (out.stderr or ""):find("MongoServerSelectionError") then
       ss.set_session_field(session.name, "is_legacy", true)
     else
       ss.set_session_field(session.name, "is_legacy", false)
@@ -37,10 +37,21 @@ Client.run_async_command = function(session, args, on_exit)
   end, 0)
 
   local host = ss.get_host(session.name)
-  local cmd = "mongosh"
+  local cmd = session.config.mongosh_binary_path
   if session.is_legacy then
-    cmd = "mongo"
+    if session.config.mongo_binary_path == nil then
+      vim.defer_fn(function()
+        vim.notify("Please set mongo_binary_path in the mongo.nvim config", vim.log.levels.ERROR)
+      end, 0)
+      return
+    end
+
+    cmd = session.config.mongo_binary_path
   end
+
+  local batch_size_config_string = session.is_legacy
+      and string.format([[DBQuery.batchSize=%d;]], session.config.batch_size)
+      or string.format([[config.set("displayBatchSize", %d);]], session.config.batch_size)
 
   local full_cmd = {
     cmd,
@@ -49,7 +60,7 @@ Client.run_async_command = function(session, args, on_exit)
     session.auth_source,
     "--quiet",
     "--eval",
-    args,
+    string.format([[%s %s]], batch_size_config_string, args),
   }
 
   if session.username ~= nil and session.password ~= nil then

@@ -86,7 +86,6 @@ Treesitter.getQueryInScope = function()
       local node_name = ts.get_node_text(node, 0)
       if name == "scope_program" then
         local scope_start_line = node:range()
-        print("scope start line: ", scope_start_line, node_name)
         if node_name == "begin" then
           local new_distance = cursor_start_line - scope_start_line
           local current_distance = cursor_start_line - result_start_line

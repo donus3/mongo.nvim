@@ -124,6 +124,8 @@ local checkHost = function(url)
     end, 0)
   end
 
+  result.host = string.gsub(result.host, "/", "")
+
   return result
 end
 

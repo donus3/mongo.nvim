@@ -31,11 +31,6 @@ end
 ---@param args string eval string arguments pass the mongosh
 ---@param on_exit fun(out: {code: number, stdout: string, stderr: string}) cb function to call after the command is done
 Client.run_async_command = function(session, args, on_exit)
-  vim.defer_fn(function()
-    -- disable the back keymaps while running the command
-    vim.keymap.set("n", "-", "", { buffer = session.connection_buf })
-  end, 0)
-
   local host = ss.get_host(session.name)
   local cmd = session.config.mongosh_binary_path
   if session.is_legacy then
@@ -51,7 +46,7 @@ Client.run_async_command = function(session, args, on_exit)
 
   local batch_size_config_string = session.is_legacy
       and string.format([[DBQuery.batchSize=%d;]], session.config.batch_size)
-      or string.format([[config.set("displayBatchSize", %d);]], session.config.batch_size)
+    or string.format([[config.set("displayBatchSize", %d);]], session.config.batch_size)
 
   local full_cmd = {
     cmd,

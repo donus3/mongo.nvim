@@ -1,4 +1,4 @@
-*mongodb.nvim.txt*       For Neovim >= 0.8.0       Last change: 2024 August 26
+*mongodb.nvim.txt*      For Neovim >= 0.8.0      Last change: 2024 November 01
 
 ==============================================================================
 Table of Contents                             *mongodb.nvim-table-of-contents*
@@ -126,8 +126,9 @@ CONNECTION WORKSPACE ~
 DATABASE WORKSPACE ~
 
   Keymap   Description
-  -------- ---------------------
+  -------- -----------------------
   <CR>     Select the database
+  <C-r>    Refresh database list
 
 COLLECTION WORKSPACE ~
 
@@ -135,6 +136,7 @@ COLLECTION WORKSPACE ~
   -------- ----------------------------------
   <CR>     Select the collection
   gx       Drop the collection under cursor
+  <c-r>    Refresh collection list
 
 QUERY WORKSPACE ~
 

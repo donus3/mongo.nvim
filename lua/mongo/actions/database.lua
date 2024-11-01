@@ -89,6 +89,14 @@ local set_show_dbs_keymaps = function(session, op)
       end,
       opts = { buffer = session.database_buf },
     },
+    {
+      mode = "n",
+      lhs = "<c-r>",
+      rhs = function()
+        DB.show_dbs_async(session)
+      end,
+      opts = { buffer = session.database_buf },
+    },
   }
   utils.mapkeys(op, map)
 end

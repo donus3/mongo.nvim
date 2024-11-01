@@ -78,6 +78,14 @@ local set_collections_keymap = function(session, op)
       end,
       opts = { buffer = session.collection_buf },
     },
+    {
+      mode = "n",
+      lhs = "<c-r>",
+      rhs = function()
+        Collection.show_collections_async(session)
+      end,
+      opts = { buffer = session.collection_buf },
+    },
   }
   utils.mapkeys(op, map)
 end

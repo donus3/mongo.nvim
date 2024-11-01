@@ -96,12 +96,14 @@ If there is no `begin` and `end` scope, the whole query will be executed.
 |Keymap|Description|
 |----|----|
 |`<CR>`|Select the database|
+|`<C-r>`|Refresh database list|
 
 ### Collection Workspace
 |Keymap|Description|
 |----|----|
 |`<CR>`|Select the collection|
 |`gx`|Drop the collection under cursor|
+|`<c-r>`|Refresh collection list|
 
 ### Query Workspace
 |Keymap|Description|

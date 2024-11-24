@@ -1,68 +1,67 @@
-local ss = require("mongo.session")
-
 ---@class Client
 local Client = {}
 
 ---check_is_legacy_async check if the host is legacy or not
----@param session Session
----@param cb fun()
-Client.check_is_legacy_async = function(session, cb)
-  local host = ss.get_host(session.name)
+---@param workspace Workspace
+Client.check_is_legacy_async = function(workspace)
+  local connection = workspace.connection
+  local extracted_uri = connection:extract_input_uri(connection.uri)
   local full_cmd = {
-    session.config.mongosh_binary_path,
-    host,
+    workspace.config.mongosh_binary_path,
+    extracted_uri.host,
     "--authenticationDatabase",
-    session.auth_source,
+    extracted_uri.auth_source,
     "--quiet",
   }
 
+  local is_legacy = false
   vim.system(full_cmd, { text = true }, function(out)
     if (out.stderr or ""):find("MongoServerSelectionError") then
-      ss.set_session_field(session.name, "is_legacy", true)
-    else
-      ss.set_session_field(session.name, "is_legacy", false)
+      is_legacy = true
     end
-    cb()
-  end)
+  end):wait()
+
+  return is_legacy
 end
 
 ---run_command run mongosh or mongo with given args asynchronously
----@param session Session
+---@param workspace Workspace
 ---@param args string eval string arguments pass the mongosh
 ---@param on_exit fun(out: {code: number, stdout: string, stderr: string}) cb function to call after the command is done
-Client.run_async_command = function(session, args, on_exit)
-  local host = ss.get_host(session.name)
-  local cmd = session.config.mongosh_binary_path
-  if session.is_legacy then
-    if session.config.mongo_binary_path == nil then
-      vim.defer_fn(function()
-        vim.notify("Please set mongo_binary_path in the mongo.nvim config", vim.log.levels.ERROR)
-      end, 0)
-      return
-    end
-
-    cmd = session.config.mongo_binary_path
+Client.run_async_command = function(workspace, db_name, args, on_exit)
+  if workspace.config.mongo_binary_path == nil then
+    vim.defer_fn(function()
+      vim.notify("Please set mongo_binary_path in the mongo.nvim config", vim.log.levels.ERROR)
+    end, 0)
+    return
   end
 
-  local batch_size_config_string = session.is_legacy
-      and string.format([[DBQuery.batchSize=%d;]], session.config.batch_size)
-    or string.format([[config.set("displayBatchSize", %d);]], session.config.batch_size)
+  local connection = workspace.connection
+  local host = connection.host
+  local cmd = workspace.config.mongosh_binary_path
+  if connection.is_legacy then
+    cmd = workspace.config.mongo_binary_path
+  end
+
+  local batch_size_config_string = connection.is_legacy
+      and string.format([[DBQuery.batchSize=%d;]], workspace.config.batch_size)
+    or string.format([[config.set("displayBatchSize", %d);]], workspace.config.batch_size)
 
   local full_cmd = {
     cmd,
-    host,
+    host .. "/" .. db_name,
     "--authenticationDatabase",
-    session.auth_source,
+    connection.auth_source or "admin",
     "--quiet",
     "--eval",
     string.format([[%s %s]], batch_size_config_string, args),
   }
 
-  if session.username ~= nil and session.password ~= nil then
+  if connection.username ~= nil and connection.password ~= nil then
     table.insert(full_cmd, "-u")
-    table.insert(full_cmd, session.username)
+    table.insert(full_cmd, connection.username)
     table.insert(full_cmd, "-p")
-    table.insert(full_cmd, session.password)
+    table.insert(full_cmd, connection.password)
   end
 
   return vim.system(full_cmd, { text = true }, function(out)

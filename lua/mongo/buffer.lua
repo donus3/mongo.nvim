@@ -1,4 +1,3 @@
-local ss = require("mongo.session")
 local constant = require("mongo.constant")
 
 ---@class Buffer
@@ -18,225 +17,184 @@ local disableJump = function(buf)
   end, 0)
 end
 
-local close_buf_hook = function(session, buf_name, group_name)
-  local group = vim.api.nvim_create_augroup(group_name, { clear = true })
-  vim.api.nvim_create_autocmd("WinClosed", {
-    group = group,
-    buffer = session[buf_name .. "_buf"],
-    callback = function()
-      if session[buf_name .. "_win"] ~= nil then
-        force_delete_buffer(session[buf_name .. "_buf"])
-      end
-      ss.set_session_field(session.name, buf_name .. "_buf", nil)
-      ss.set_session_field(session.name, buf_name .. "_win", nil)
-    end,
-  })
+---@param workspace Workspace
+---@param key 'connection' | 'database' | 'query' | 'result'
+---@param group_name string
+local close_buf_hook = function(workspace)
+  local group = vim.api.nvim_create_augroup("MongoLeave", { clear = true })
+
+  for k, v in pairs(workspace.space) do
+    vim.defer_fn(function()
+      vim.keymap.set("n", "gq", ":q<cr>", { buffer = v.buf })
+
+      --- clean up autocmd
+      vim.api.nvim_create_autocmd("WinClosed", {
+        group = group,
+        buffer = v.buf,
+        callback = function()
+          for k2, v2 in pairs(workspace.space) do
+            if v2.win ~= nil then
+              force_delete_buffer(v2.buf)
+            end
+            workspace:reset(k2)
+          end
+        end,
+      })
+    end, 0)
+  end
 end
 
 ---create a new connection working space scratch buffer if not exist
----@param session Session
-Buffer.create_connection_buf = function(session)
-  if not session.connection_buf then
+---@param workspace Workspace
+Buffer.create_connection_buf = function(workspace)
+  if not workspace.space.connection.buf then
     vim.cmd("tabnew")
 
-    ss.set_session_field(session.name, "tabpage_num", vim.api.nvim_tabpage_get_number(0))
-    ss.set_session_field(session.name, "connection_win", vim.api.nvim_tabpage_get_win(0))
+    workspace.tab_number = vim.api.nvim_tabpage_get_number(0)
+    workspace.space.connection.win = vim.api.nvim_tabpage_get_win(0)
+
     local tab_buf = vim.api.nvim_get_current_buf()
-    ss.set_session_field(session.name, "connection_buf", vim.api.nvim_create_buf(false, true))
-    disableJump(session.connection_buf)
-    vim.api.nvim_buf_set_name(session.connection_buf, constant.connection_buf_name .. session.name)
-    vim.api.nvim_win_set_buf(session.connection_win, session.connection_buf)
-    vim.bo[session.connection_buf].filetype = "mongo-connection"
+    workspace.space.connection.buf = vim.api.nvim_create_buf(false, true)
+
+    disableJump(workspace.space.connection.buf)
+
+    vim.api.nvim_buf_set_name(
+      workspace.space.connection.buf,
+      constant.workspace .. workspace.name .. constant.connection_buf_name
+    )
+    vim.api.nvim_win_set_buf(workspace.space.connection.win, workspace.space.connection.buf)
+    vim.bo[workspace.space.connection.buf].filetype = "mongo-connection"
     force_delete_buffer(tab_buf)
-
-    -- clean up autocmd when leave
-    close_buf_hook(session, "connection", constant.connection_buf_name)
   end
 end
 
----create a new database working space scratch buffer if not exist
----@param session Session
-Buffer.create_database_buf = function(session)
-  if not session.database_buf then
+---create a new .keymap.settabase working space scratch buffer if not exist
+---@param workspace Workspace
+Buffer.create_database_buf = function(workspace)
+  if not workspace.space.database.buf then
     vim.cmd("split")
-    ss.set_session_field(session.name, "database_win", vim.api.nvim_get_current_win())
+    workspace.space.database.win = vim.api.nvim_get_current_win()
+    workspace.space.database.buf = vim.api.nvim_create_buf(false, true)
+    local connection_win_height = vim.api.nvim_win_get_height(workspace.space.connection.win)
+    local database_win_height = vim.api.nvim_win_get_height(workspace.space.database.win)
+    vim.api.nvim_win_set_height(
+      workspace.space.database.win,
+      math.floor(0.85 * (connection_win_height + database_win_height))
+    )
 
-    ss.set_session_field(session.name, "database_buf", vim.api.nvim_create_buf(false, true))
-    disableJump(session.database_buf)
-    vim.api.nvim_buf_set_name(session.database_buf, constant.database_buf_name .. session.name)
-    vim.api.nvim_win_set_buf(session.database_win, session.database_buf)
-    vim.bo[session.database_buf].filetype = "txt"
+    disableJump(workspace.space.database.buf)
 
-    -- clean up autocmd when leave
-    close_buf_hook(session, "database", constant.database_buf_name)
+    vim.api.nvim_buf_set_name(
+      workspace.space.database.buf,
+      constant.workspace .. workspace.name .. constant.database_buf_name
+    )
+    vim.api.nvim_win_set_buf(workspace.space.database.win, workspace.space.database.buf)
+    vim.bo[workspace.space.database.buf].filetype = "txt"
   end
 end
 
----create a new collection working space scratch buffer if not exist
----@param session Session
-Buffer.create_collection_buf = function(session)
-  if not session.collection_buf then
-    local current_connection_win_height = vim.api.nvim_win_get_height(session.database_win)
-    vim.cmd("split")
-    ss.set_session_field(session.name, "collection_win", vim.api.nvim_get_current_win())
-
-    -- resize the connection & database window
-    vim.api.nvim_win_set_height(session.connection_win, 5)
-    vim.api.nvim_win_set_height(session.database_win, 7)
-
-    ss.set_session_field(session.name, "collection_buf", vim.api.nvim_create_buf(false, true))
-    disableJump(session.collection_buf)
-    vim.api.nvim_buf_set_name(session.collection_buf, constant.collection_buf_name .. session.name)
-    vim.api.nvim_win_set_buf(session.collection_win, session.collection_buf)
-    vim.bo[session.collection_buf].filetype = "txt"
-
-    -- clean up autocmd when leave
-    close_buf_hook(session, "collection", constant.collection_buf_name)
-  end
-end
-
----create a new command working space scratch buffer if not exist
----@param session Session
-Buffer.create_query_buf = function(session)
-  if not session.query_buf then
-    local current_connection_win_width = vim.api.nvim_win_get_width(session.connection_win)
+---create a new .keymap.setmmand working space scratch buffer if not exist
+---@param workspace Workspace
+Buffer.create_query_buf = function(workspace)
+  if not workspace.space.query.buf then
+    local current_connection_win_width = vim.api.nvim_win_get_width(workspace.space.connection.win)
     vim.cmd("vsplit")
-    ss.set_session_field(session.name, "query_win", vim.api.nvim_get_current_win())
+    workspace.space.query.win = vim.api.nvim_get_current_win()
 
     -- resize the connection window
-    if session.connection_win ~= nil then
+    if workspace.space.connection.win ~= nil then
       local connection_win_width = math.floor(current_connection_win_width * 0.8)
       if connection_win_width < 15 then
         connection_win_width = 15
       end
 
-      vim.api.nvim_win_set_width(session.query_win, connection_win_width)
+      vim.api.nvim_win_set_width(workspace.space.query.win, connection_win_width)
     end
 
-    ss.set_session_field(session.name, "query_buf", vim.api.nvim_create_buf(false, true))
-    disableJump(session.query_buf)
-    vim.api.nvim_buf_set_name(session.query_buf, constant.query_buf_name .. session.name)
-    vim.api.nvim_win_set_buf(session.query_win, session.query_buf)
-    vim.bo[session.query_buf].filetype = "javascript"
-
-    -- clean up autocmd when leave
-    close_buf_hook(session, "query", constant.query_buf_name)
+    workspace.space.query.buf = vim.api.nvim_create_buf(false, true)
+    disableJump(workspace.space.query.buf)
+    vim.api.nvim_buf_set_name(
+      workspace.space.query.buf,
+      constant.workspace .. workspace.name .. constant.query_buf_name
+    )
+    vim.api.nvim_win_set_buf(workspace.space.query.win, workspace.space.query.buf)
+    vim.bo[workspace.space.query.buf].filetype = "javascript"
   end
 end
 
----create a new result window and scratch buffer if not exist
----@param session Session
-Buffer.create_result_buf = function(session)
-  if not session.result_buf then
+---create a new .keymap.setsult window and scratch buffer if not exist
+---@param workspace Workspace
+Buffer.create_result_buf = function(workspace)
+  if not workspace.space.result.buf then
     vim.cmd("vsplit")
-    ss.set_session_field(session.name, "result_win", vim.api.nvim_get_current_win())
-    ss.set_session_field(session.name, "result_buf", vim.api.nvim_create_buf(false, true))
-    disableJump(session.result_buf)
-    vim.api.nvim_buf_set_name(session.result_buf, constant.result_buf_name .. session.name)
-    vim.api.nvim_win_set_buf(session.result_win, session.result_buf)
-    vim.bo[session.result_buf].filetype = "javascript"
+    workspace.space.result.win = vim.api.nvim_get_current_win()
+    workspace.space.result.buf = vim.api.nvim_create_buf(false, true)
 
-    -- clean up autocmd when leave
-    close_buf_hook(session, "result", constant.result_buf_name)
+    disableJump(workspace.space.result.buf)
+
+    vim.api.nvim_buf_set_name(
+      workspace.space.result.buf,
+      constant.workspace .. workspace.name .. constant.result_buf_name
+    )
+    vim.api.nvim_win_set_buf(workspace.space.result.win, workspace.space.result.buf)
+    vim.bo[workspace.space.result.buf].filetype = "javascript"
   end
 end
 
----set contents in the connection working space
----@param session Session
+---set contents .keymap.set the connection working space
+---@param workspace Workspace
 ---@param contents string[] each item in the table is one line
-Buffer.set_connection_content = function(session, contents)
-  if session.connection_buf == nil then
-    Buffer.create_connection_buf(session)
+Buffer.set_connection_content = function(workspace, contents)
+  if workspace.space.connection.buf == nil then
+    Buffer.create_connection_buf(workspace)
   end
 
-  vim.api.nvim_buf_set_lines(session.connection_buf, 0, -1, true, contents)
+  vim.api.nvim_buf_set_lines(workspace.space.connection.buf, 0, -1, true, contents)
 end
 
 ---set contents in the database working space
----@param session Session
+---@param workspace Workspace
 ---@param contents string[] each item in the table is one line
-Buffer.set_database_content = function(session, contents)
-  if session.database_buf == nil then
-    Buffer.create_connection_buf(session)
+Buffer.set_database_content = function(workspace, contents)
+  if workspace.space.database.buf == nil then
+    Buffer.create_connection_buf(workspace)
   end
 
-  vim.api.nvim_buf_set_lines(session.database_buf, 0, -1, true, contents)
-end
-
----set contents in the collection working space
----@param session Session
----@param contents string[] each item in the table is one line
-Buffer.set_collection_content = function(session, contents)
-  if session.query_buf == nil then
-    Buffer.create_collection_buf(session)
-  end
-
-  vim.api.nvim_buf_set_lines(session.collection_buf, 0, -1, true, contents)
+  vim.api.nvim_buf_set_lines(workspace.space.database.buf, 0, -1, true, contents)
 end
 
 ---set contents in the query working space
----@param session Session
+---@param workspace Workspace
 ---@param contents string[] each item in the table is one line
-Buffer.set_query_content = function(session, contents)
-  if session.query_buf == nil then
-    Buffer.create_query_buf(session)
+Buffer.set_query_content = function(workspace, contents)
+  if workspace.space.query.buf == nil then
+    Buffer.create_query_buf(workspace)
   end
 
-  vim.api.nvim_buf_set_lines(session.query_buf, 0, -1, true, contents)
+  vim.api.nvim_buf_set_lines(workspace.space.query.buf, 0, -1, true, contents)
 end
 
 ---show contents in the query result space
----@param session Session
+---@param workspace Workspace
 ---@param contents string[] each item in the table is one line
-Buffer.show_result = function(session, contents)
-  if not session.result_buf then
-    Buffer.create_result_buf(session)
+Buffer.show_result = function(workspace, contents)
+  if not workspace.space.result.buf then
+    Buffer.create_result_buf(workspace)
   end
 
-  vim.api.nvim_buf_set_lines(session.result_buf, 0, -1, true, contents)
+  vim.api.nvim_buf_set_lines(workspace.space.result.buf, 0, -1, true, contents)
 end
 
----clean up all buffers and close all windows
----@param session Session
-Buffer.clean = function(session)
-  local toClean = {
-    "result",
-    "query",
-    "connection",
-    "collection",
-    "database",
-  }
+---@param workspace Workspace
+Buffer.init = function(workspace)
+  Buffer.create_connection_buf(workspace)
+  Buffer.create_database_buf(workspace)
+  Buffer.create_query_buf(workspace)
+  Buffer.create_result_buf(workspace)
 
-  for _, v in ipairs(toClean) do
-    local bufName = v .. "_buf"
-    local winName = v .. "_win"
-    if session[bufName] ~= nil then
-      if vim.api.nvim_buf_is_valid(session[bufName]) then
-        vim.api.nvim_buf_delete(session[bufName], { force = true })
-      end
-      ss.set_session_field(session.name, bufName, nil)
-      if session[winName] ~= nil then
-        if vim.api.nvim_win_is_valid(session[winName]) then
-          vim.api.nvim_win_close(session[winName], true)
-        end
-        ss.set_session_field(session.name, winName, nil)
-      end
-    end
-  end
-
-  ss.remove(session.name)
-end
-
-Buffer.init = function(session)
-  Buffer.create_connection_buf(session)
-  Buffer.create_database_buf(session)
-  Buffer.create_query_buf(session)
-  Buffer.create_result_buf(session)
-
-  vim.api.nvim_set_current_win(session.database_win)
-  Buffer.create_collection_buf(session)
-
-  vim.api.nvim_set_current_win(session.connection_win)
+  vim.api.nvim_set_current_win(workspace.space.connection.win)
+  -- clean up autocmd when leave
+  close_buf_hook(workspace)
 end
 
 return Buffer

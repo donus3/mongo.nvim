@@ -83,31 +83,24 @@ If there is no `begin` and `end` scope, the whole query will be executed.
 
 ### Session Workspace
 |Keymap|Description|
-|----|----|
-|`gf`|Fuzzy find sessions|
+|--------|-----|
 |`gq`|Quit|
 
 ### Connection Workspace
 |Keymap|Description|
-|----|----|
+|--------|----|
 |`<CR>`| Connect to the mongo server|
 
 ### Database Workspace
 |Keymap|Description|
-|----|----|
+|--------|-----------------------------------|
 |`<CR>`|Select the database|
 |`<C-r>`|Refresh database list|
-
-### Collection Workspace
-|Keymap|Description|
-|----|----|
-|`<CR>`|Select the collection|
 |`gx`|Drop the collection under cursor|
-|`<c-r>`|Refresh collection list|
 
 ### Query Workspace
 |Keymap|Description|
-|----|----|
+|--------|-----------------------------------|
 |`<CR>`|Execute the query under cursor|
 |`gi`|Insert new query snippet|
 |`gf`|Find the query snippet|
@@ -116,7 +109,7 @@ If there is no `begin` and `end` scope, the whole query will be executed.
 
 ### Result Workspace
 |Keymap|Description|
-|----|----|
+|----------|----------------------------------|
 |`d`|Delete the document under cursor|
 |`e`|Update the document under cursor|
 

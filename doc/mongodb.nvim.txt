@@ -1,4 +1,4 @@
-*mongodb.nvim.txt*      For Neovim >= 0.8.0      Last change: 2024 November 01
+*mongodb.nvim.txt*      For Neovim >= 0.8.0      Last change: 2024 November 27
 
 ==============================================================================
 Table of Contents                             *mongodb.nvim-table-of-contents*
@@ -113,8 +113,7 @@ KEYMAPS                                      *mongodb.nvim-mongo.nvim-keymaps*
 SESSION WORKSPACE ~
 
   Keymap   Description
-  -------- ---------------------
-  gf       Fuzzy find sessions
+  -------- -------------
   gq       Quit
 
 CONNECTION WORKSPACE ~
@@ -126,17 +125,10 @@ CONNECTION WORKSPACE ~
 DATABASE WORKSPACE ~
 
   Keymap   Description
-  -------- -----------------------
+  -------- ----------------------------------
   <CR>     Select the database
   <C-r>    Refresh database list
-
-COLLECTION WORKSPACE ~
-
-  Keymap   Description
-  -------- ----------------------------------
-  <CR>     Select the collection
   gx       Drop the collection under cursor
-  <c-r>    Refresh collection list
 
 QUERY WORKSPACE ~
 

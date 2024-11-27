@@ -1,4 +1,3 @@
-local ss = require("mongo.session")
 local client = require("mongo.client")
 local db = require("mongo.actions.database")
 local utils = require("mongo.util")
@@ -7,42 +6,38 @@ local Connection = {}
 
 ---check the input mongo url and set each part to the corresponding module variable
 ---host, username, password, authSource, params
----@param session Session
-local checkHost = function(session)
+---@param workspace Workspace
+local connect = function(workspace)
   local input_url = utils.get_line()
+  local connection = workspace.connection
 
-  ss.set_url(session.name, input_url)
+  connection:set_uri(input_url)
 
-  client.check_is_legacy_async(session, function()
-    if session.selected_db ~= nil and session.selected_db ~= "" then
-      db.select_db(session, true)
-      return
-    end
-
-    db.show_dbs_async(session)
-  end)
+  local is_legacy = client.check_is_legacy_async(workspace)
+  connection.is_legacy = is_legacy
+  db.show_dbs_async(workspace)
 end
 
 ---set_connect_keymaps sets the keymaps for connect
----@param session Session
+---@param workspace Workspace
 ---@param op "set" | "del"
-local set_connect_keymaps = function(session, op)
+local set_connect_keymaps = function(workspace, op)
   local map = {
     {
       mode = "n",
       lhs = "<CR>",
       rhs = function()
-        checkHost(session)
+        connect(workspace)
       end,
-      opts = { buffer = session.connection_buf },
+      opts = { buffer = workspace.space.connection.buf },
     },
   }
   utils.mapkeys(op, map)
 end
 
----@param session Session
-Connection.init = function(session)
-  set_connect_keymaps(session, "set")
+---@param workspace Workspace
+Connection.init = function(workspace)
+  set_connect_keymaps(workspace, "set")
 end
 
 return Connection

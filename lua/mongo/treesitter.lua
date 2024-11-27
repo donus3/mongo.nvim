@@ -33,8 +33,9 @@ Treesitter.getDocument = function()
   local root_object_string = ""
   local identifier = ""
 
-  for _, match in query:iter_matches(root, 0) do
-    for _, node in pairs(match) do
+  for _, matches in query:iter_matches(root, 0) do
+    for _, match in pairs(matches) do
+      local node = match[1]
       if ts.is_ancestor(node, ts_util.get_node_at_cursor()) then
         root_object_string = ts.get_node_text(node, 0)
         identifier = ts.get_node_text(node:child(1), 0)

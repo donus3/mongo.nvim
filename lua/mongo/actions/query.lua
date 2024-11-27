@@ -7,9 +7,11 @@ local ts = require("mongo.treesitter")
 QueryAction = {}
 
 ---set_query_keymap sets the keymaps for query working space
----@param session Session
+---@param workspace Workspace
+---@param database_name string
+---@param collection_name string
 ---@param op "set" | "del"
-local set_query_keymap = function(session, op)
+local set_query_keymap = function(workspace, database_name, collection_name, op)
   local map = {
     {
       mode = "n",
@@ -17,61 +19,63 @@ local set_query_keymap = function(session, op)
       rhs = function()
         local queryWithInBeginEndScope = ts.getQueryInScope()
         if queryWithInBeginEndScope ~= nil then
-          QueryAction.execute_asking(session, queryWithInBeginEndScope)
+          QueryAction.execute_asking(workspace, database_name, queryWithInBeginEndScope)
           return
         end
 
         local queries = utils.get_all_lines()
-        QueryAction.execute_asking(session, queries)
+        QueryAction.execute_asking(workspace, database_name, queries)
       end,
-      opts = { buffer = session.query_buf },
+      opts = { buffer = workspace.space.query.buf },
     },
     {
       mode = "n",
       lhs = "gf",
       rhs = function()
-        query.find(session, session.selected_collection)
+        query.find(workspace, collection_name)
       end,
-      opts = { buffer = session.query_buf },
+      opts = { buffer = workspace.space.query.buf },
     },
     {
       mode = "n",
       lhs = "gi",
       rhs = function()
-        query.insert_one(session, session.selected_collection)
+        query.insert_one(workspace, collection_name)
       end,
-      opts = { buffer = session.query_buf },
+      opts = { buffer = workspace.space.query.buf },
     },
     {
       mode = "n",
       lhs = "gu",
       rhs = function()
-        query.update_one(session, session.selected_collection)
+        query.update_one(workspace, collection_name)
       end,
-      opts = { buffer = session.query_buf },
+      opts = { buffer = workspace.space.query.buf },
     },
     {
       mode = "n",
       lhs = "gd",
       rhs = function()
-        query.delete_one(session, session.selected_collection)
+        query.delete_one(workspace, collection_name)
       end,
-      opts = { buffer = session.query_buf },
+      opts = { buffer = workspace.space.query.buf },
     },
   }
   utils.mapkeys(op, map)
 end
 
 ---execute executes the query
-----@param session Session
-----@param queries string
-QueryAction.execute = function(session, queries)
+---@param workspace Workspace
+---@param queries string | string[]
+---@param database_name string
+---@param cb function
+QueryAction.execute = function(workspace, database_name, queries, cb)
   local query_string = queries
   if type(queries) == "table" then
     query_string = table.concat(queries, " ")
   end
 
-  client.run_async_command(session, query_string, function(out)
+  client.run_async_command(workspace, database_name, query_string, function(out)
     if out.code ~= 0 then
       vim.defer_fn(function()
         vim.notify(out.stderr, vim.log.levels.ERROR)
@@ -81,46 +85,45 @@ QueryAction.execute = function(session, queries)
 
     local result = out.stdout:gsub("'", '"')
 
-    local text = {}
+    if cb ~= nil then
+      cb()
+      return
+    end
+
     vim.defer_fn(function()
+      local text = {}
       if type(result) == "string" then
         text = vim.fn.split(result, "\n")
       end
 
-      vim.api.nvim_set_option_value("modifiable", true, { buf = session.result_buf })
-      buffer.show_result(session, text)
-      vim.api.nvim_set_current_win(session.result_win)
-      vim.api.nvim_set_option_value("modifiable", false, { buf = session.result_buf })
+      vim.api.nvim_set_option_value("modifiable", true, { buf = workspace.space.result.buf })
+      buffer.show_result(workspace, text)
+      vim.api.nvim_set_current_win(workspace.space.result.win)
+      vim.api.nvim_set_option_value("modifiable", false, { buf = workspace.space.result.buf })
     end, 0)
   end)
 end
 
 ---execute_asking executes the query
------@param session Session
------@param queries string
-QueryAction.execute_asking = function(session, queries)
+---@param workspace Workspace
+---@param queries string[] | string
+---@param database_name string
+---@param cb function
+QueryAction.execute_asking = function(workspace, database_name, queries, cb)
   vim.ui.input({ prompt = "Execute query?: [Y/n]" }, function(answer)
     if answer ~= "y" and answer ~= "Y" and answer ~= "" then
       return
     end
 
-    QueryAction.execute(session, queries)
+    QueryAction.execute(workspace, database_name, queries, cb)
   end)
 end
 
----execute_query_fn executes the query
-----@param session Session
-----@param queryFunction fun(args: string)
-----@param args string
-QueryAction.execute_query_fn = function(session, queryFunction, args)
-  queryFunction(args)
-  local queries = utils.get_all_lines()
-  QueryAction.execute(session, queries)
-end
-
----@param session Session
-QueryAction.init = function(session)
-  set_query_keymap(session, "set")
+---@param workspace Workspace
+---@param database_name string
+---@param collection_name string
+QueryAction.init = function(workspace, database_name, collection_name)
+  set_query_keymap(workspace, database_name, collection_name, "set")
 end
 
 return QueryAction

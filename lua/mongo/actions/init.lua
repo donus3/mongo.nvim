@@ -1,5 +1,4 @@
 local connection = require("mongo.actions.connection")
-local collection = require("mongo.actions.collection")
 local result = require("mongo.actions.result")
 local query = require("mongo.actions.query")
 local constant = require("mongo.constant")
@@ -26,33 +25,15 @@ local fuzzy_session_search = function()
   })
 end
 
----@param session Session
-Action.init = function(session)
-  ss.set_url(session.name, session.config.default_url)
-  buffer.set_connection_content(session, { constant.host_example, "", session.url })
+---@param workspace Workspace
+Action.init = function(workspace)
+  buffer.set_connection_content(workspace, { constant.host_example, "", workspace.connection.uri })
   vim.cmd(":3")
 
-  vim.keymap.set("n", "go", open_web, { buffer = session.query_buf })
+  vim.keymap.set("n", "go", open_web, { buffer = workspace.space.query.buf })
 
-  for _, buf in ipairs({
-    session.connection_buf,
-    session.query_buf,
-    session.result_buf,
-    session.collection_buf,
-    session.database_buf,
-  }) do
-    vim.keymap.set("n", "gq", function()
-      buffer.clean(session)
-    end, { buffer = buf })
-
-    vim.keymap.set("n", "gs", fuzzy_session_search, { buffer = buf })
-  end
-
-  connection.init(session)
-  collection.init(session)
-  database.init(session)
-  result.init(session)
-  query.init(session)
+  connection.init(workspace)
+  database.init(workspace)
 end
 
 return Action

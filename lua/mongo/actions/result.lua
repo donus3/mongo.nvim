@@ -4,9 +4,10 @@ local query = require("mongo.query")
 
 ResultAction = {}
 
----@param session Session
+---@param workspace Workspace
+---@param collection_name string
 ---@param op "set" | "del"
-local set_result_keymap = function(session, op)
+local set_result_keymap = function(workspace, collection_name, op)
   local map = {
     {
       mode = "n",
@@ -14,11 +15,11 @@ local set_result_keymap = function(session, op)
       rhs = function()
         local lines, id = ts.getDocument()
         if lines ~= nil then
-          query.update_one(session, session.selected_collection, { lines, id })
-          vim.api.nvim_set_current_win(session.query_win)
+          query.update_one(workspace, collection_name, { lines, id })
+          vim.api.nvim_set_current_win(workspace.space.query.win)
         end
       end,
-      opts = { buffer = session.result_buf },
+      opts = { buffer = workspace.space.result.buf },
     },
     {
       mode = "n",
@@ -26,19 +27,19 @@ local set_result_keymap = function(session, op)
       rhs = function()
         local _, id = ts.getDocument()
         if id ~= nil then
-          query.delete_one(session, session.selected_collection, id)
-          vim.api.nvim_set_current_win(session.query_win)
+          query.delete_one(workspace, collection_name, id)
+          vim.api.nvim_set_current_win(workspace.space.query.win)
         end
       end,
-      opts = { buffer = session.result_buf },
+      opts = { buffer = workspace.space.result.buf },
     },
   }
   utils.mapkeys(op, map)
 end
 
----@param session Session
-ResultAction.init = function(session)
-  set_result_keymap(session, "set")
+---@param workspace Workspace
+ResultAction.init = function(workspace, collection_name)
+  set_result_keymap(workspace, collection_name, "set")
 end
 
 return ResultAction

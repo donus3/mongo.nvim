@@ -8,12 +8,17 @@ local Query = {}
 ---@param collection string
 Query.insert_one = function(workspace, collection)
   local queryLines = {
+    "begin",
+    "",
     string.format("db['%s'].insertOne({", collection),
     "  ",
     "})",
+    "",
+    "end",
+    "",
   }
-  buffer.set_query_content(workspace, { "/** Insert One */", table.unpack(queryLines) })
-  vim.cmd(":3")
+  buffer.set_query_content(workspace, queryLines, true)
+  vim.cmd(":5")
 end
 
 ---snippet deleteOne query
@@ -22,6 +27,8 @@ end
 ---@param identifier? string | nil
 Query.delete_one = function(workspace, collection, identifier)
   local queryLines = {
+    "begin",
+    "",
     string.format("db['%s'].deleteOne({", collection),
   }
   if identifier ~= nil then
@@ -30,8 +37,11 @@ Query.delete_one = function(workspace, collection, identifier)
     table.insert(queryLines, "  ")
   end
   table.insert(queryLines, "})")
-  buffer.set_query_content(workspace, { "/** Delete One */", table.unpack(queryLines) })
-  vim.cmd(":3")
+  table.insert(queryLines, "")
+  table.insert(queryLines, "end")
+  table.insert(queryLines, "")
+  buffer.set_query_content(workspace, queryLines, true)
+  vim.cmd(":5")
 end
 
 ---snippet updateOne query
@@ -40,6 +50,8 @@ end
 ---@param document? table<string[], string> | nil
 Query.update_one = function(workspace, collection, document)
   local queryLines = {
+    "begin",
+    "",
     string.format("db['%s'].updateOne({", collection),
   }
 
@@ -60,9 +72,12 @@ Query.update_one = function(workspace, collection, document)
     table.insert(queryLines, "  {}")
   end
   table.insert(queryLines, "})")
+  table.insert(queryLines, "")
+  table.insert(queryLines, "end")
+  table.insert(queryLines, "")
 
-  buffer.set_query_content(workspace, { "/** Update One */", table.unpack(queryLines) })
-  vim.cmd(":3")
+  buffer.set_query_content(workspace, queryLines, true)
+  vim.cmd(":5")
 end
 
 ---snippet find query
@@ -71,6 +86,8 @@ end
 ---@param filter? string | nil
 Query.find = function(workspace, collection, filter)
   local queryLines = {
+    "begin",
+    "",
     string.format("db['%s'].find({", collection),
   }
 
@@ -80,9 +97,12 @@ Query.find = function(workspace, collection, filter)
   table.insert(queryLines, "})")
   table.insert(queryLines, "  .limit(10)")
   table.insert(queryLines, "  .toArray()")
+  table.insert(queryLines, "")
+  table.insert(queryLines, "end")
+  table.insert(queryLines, "")
 
-  buffer.set_query_content(workspace, { table.unpack(queryLines) })
-  vim.cmd(":3")
+  buffer.set_query_content(workspace, queryLines)
+  vim.cmd(":5")
 end
 
 return Query

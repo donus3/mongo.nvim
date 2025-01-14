@@ -40,25 +40,39 @@ local set_show_dbs_keymaps = function(workspace, op)
         local row = unpack(vim.api.nvim_win_get_cursor(0))
         local line = utils.get_line()
         local result = workspace.tree:draw(nil, 0, {})
+
         --- new node
-        if result[row].display == line then
+        if #result >= row and result[row].display == line then
           if result[row].handler ~= nil then
             result[row].handler()
           end
         else
-          local above_line = ""
           local node_type = "Database"
-          if row > 1 then
-            above_line = unpack(vim.api.nvim_buf_get_lines(0, row - 2, row - 1, false))
-            vim.print("above_line: " .. above_line)
-            node_type = above_line:find("^  ") and "Collection" or "Database"
+          if line:find("^  ") then
+            node_type = "Collection"
           end
 
+          -- if the target node is database node
+          if node_type == "Database" then
+            local connection = workspace.connection
+            connection:add_db(workspace, line)
+            local new_result = workspace.tree:draw(nil, 0, {})
+            print("after", vim.inspect(new_result))
+            return
+          end
+
+          local above_line = ""
+          local above_line_node_type = "Database"
+          if row > 1 then
+            above_line = unpack(vim.api.nvim_buf_get_lines(0, row - 2, row - 1, false))
+            above_line_node_type = above_line:find("^  ") and "Collection" or "Database"
+          end
+
+          -- if the target node is collection node
           local normalized_line = line:gsub("[%s]+", "")
           local normalized_above_line = above_line:gsub("[%s]+", "")
-          local result_node = workspace.tree:find_node(normalized_above_line, node_type)
+          local result_node = workspace.tree:find_node(normalized_above_line, above_line_node_type)
           if result_node.target == nil then
-            vim.print(normalized_line .. ": " .. node_type)
             vim.notify("Node not found", vim.log.levels.ERROR)
             return
           end

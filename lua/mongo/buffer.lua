@@ -166,12 +166,17 @@ end
 ---set contents in the query working space
 ---@param workspace Workspace
 ---@param contents string[] each item in the table is one line
-Buffer.set_query_content = function(workspace, contents)
+---@param isAppend boolean?
+Buffer.set_query_content = function(workspace, contents, isAppend)
   if workspace.space.query.buf == nil then
     Buffer.create_query_buf(workspace)
   end
 
-  vim.api.nvim_buf_set_lines(workspace.space.query.buf, 0, -1, true, contents)
+  if isAppend == nil or isAppend == false then
+    vim.api.nvim_buf_set_lines(workspace.space.query.buf, 0, -1, true, contents)
+  else
+    vim.api.nvim_buf_set_lines(workspace.space.query.buf, -1, -1, true, contents)
+  end
 end
 
 ---show contents in the query result space

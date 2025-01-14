@@ -77,6 +77,17 @@ function Connection:set_db_from_raw_string(workspace, db_json_string)
   return { ok = true }
 end
 
+---add_db adds a new database to the list of the databases
+---@param workspace Workspace
+---@param new_db_name string
+function Connection:add_db(workspace, new_db_name)
+  local newDatabase = Database:new(new_db_name)
+  table.insert(self.databases, newDatabase)
+  workspace.tree.root:add_child(Node:new(newDatabase, false, function()
+    collection_actions.show_collections_async(workspace, newDatabase)
+  end))
+end
+
 ---get_params_and_auth_source extracts authSource and params from options
 ---and returns them as table
 ---@param params string
@@ -161,8 +172,8 @@ function Connection:extract_input_uri(url)
     vim.defer_fn(function()
       vim.notify(
         "Unsupported mongodb URL "
-          .. url
-          .. ". Please use mongodb://username:password@host[/db_name][/?options] or mongodb://host[/db_name][/?options]",
+        .. url
+        .. ". Please use mongodb://username:password@host[/db_name][/?options] or mongodb://host[/db_name][/?options]",
         vim.log.levels.ERROR
       )
     end, 0)

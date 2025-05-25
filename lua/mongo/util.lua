@@ -35,4 +35,13 @@ Util.mapkeys = function(op, configs)
   end
 end
 
+Util.find_in_array = function(tbl, value)
+  for i, v in ipairs(tbl) do
+    if v.display == value then
+      return tbl[i]
+    end
+  end
+  return nil
+end
+
 return Util

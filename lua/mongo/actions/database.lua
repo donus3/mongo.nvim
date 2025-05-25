@@ -45,12 +45,16 @@ local set_show_dbs_keymaps = function(workspace, op)
         local line = utils.get_line()
         local result = workspace.tree:draw(nil, 0, {})
 
-        --- new node
-        if #result >= row and result[row].display == line then
-          if result[row].handler ~= nil then
-            result[row].handler()
+        local target_row = utils.find_in_array(result, line)
+        if target_row ~= nil then
+          target_row.is_expanded = not target_row.is_expanded
+          if target_row.handler ~= nil then
+            target_row.handler()
           end
+          local lines = workspace:draw_tree()
+          buffer.set_database_content(workspace, lines)
         else
+          --- new node
           local node_type = "Database"
           if line:find("^  ") then
             node_type = "Collection"
@@ -61,7 +65,6 @@ local set_show_dbs_keymaps = function(workspace, op)
             local connection = workspace.connection
             connection:add_db(workspace, line)
             local new_result = workspace.tree:draw(nil, 0, {})
-            print("after", vim.inspect(new_result))
             return
           end
 

@@ -80,7 +80,9 @@ function Workspace:draw_tree()
   local draw_result = self.tree:draw(nil, 0, {})
   local lines = {}
   for _, v in ipairs(draw_result) do
-    table.insert(lines, v.display)
+    if v.node_type ~= "Collection" or (v.node_type == "Collection" and v.is_parent_expanded) then
+      table.insert(lines, v.display)
+    end
   end
 
   return lines

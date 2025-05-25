@@ -3,7 +3,7 @@ Node = {
   ---@type Node[] | nil
   children = nil,
   ---@type boolean
-  isExpanded = false,
+  is_expanded = false,
   ---@type Database | Collection | table | nil
   value = nil,
   ---@type function | nil
@@ -18,7 +18,7 @@ Node.__index = Node
 function Node:new(value, isExpanded, handler)
   local instance = setmetatable({}, Node)
   instance.value = value
-  instance.isExpanded = isExpanded or false
+  instance.is_expanded = isExpanded or false
   instance:register_handler(handler)
   return instance
 end
@@ -27,12 +27,12 @@ function Node:register_handler(handler)
   if handler ~= nil then
     self.handler = function()
       handler(self)
-      self.isExpanded = not self.isExpanded
+      self.is_expanded = not self.is_expanded
     end
   else
     self.handler = function()
       vim.notify("missing handler for " .. self.value.name, vim.log.levels.ERROR)
-      self.isExpanded = not self.isExpanded
+      self.is_expanded = not self.is_expanded
     end
   end
 end
@@ -91,7 +91,10 @@ function Tree:find_node(name, type, node)
 end
 
 ---@param node Node | nil
-function Tree:draw(node, depth, result)
+---@param depth integer
+---@param result { display: string, handler: function, is_expanded: boolean, is_parent_expanded: boolean, node_type: string }[]
+---@return { display: string, handler: function, is_expanded: boolean, is_parent_expanded: boolean, node_type: string }[]
+function Tree:draw(node, depth, result, is_parent_expanded)
   local current_node = node or self.root
   if current_node == nil then
     return result
@@ -107,6 +110,9 @@ function Tree:draw(node, depth, result)
     table.insert(result, {
       display = depth_space .. current_node.value.name,
       handler = current_node.handler,
+      is_expanded = current_node.is_expanded,
+      is_parent_expanded = is_parent_expanded,
+      node_type = depth == 1 and "Database" or "Collection",
     })
   end
 
@@ -115,7 +121,7 @@ function Tree:draw(node, depth, result)
   end
 
   for _, child in ipairs(current_node.children) do
-    result = self:draw(child, depth + 1, result)
+    result = self:draw(child, depth + 1, result, current_node.is_expanded)
   end
 
   return result

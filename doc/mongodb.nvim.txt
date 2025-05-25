@@ -1,4 +1,4 @@
-*mongodb.nvim.txt*       For Neovim >= 0.8.0      Last change: 2025 January 14
+*mongodb.nvim.txt*         For Neovim >= 0.8.0        Last change: 2025 May 25
 
 ==============================================================================
 Table of Contents                             *mongodb.nvim-table-of-contents*

@@ -15,6 +15,7 @@ DB.show_dbs_async = function(workspace)
   client.run_async_command(workspace, "", "db.getMongo().getDBNames()", function(out)
     if out.code ~= 0 then
       vim.defer_fn(function()
+        spinner.stop_spinner()
         vim.notify(out.stderr, vim.log.levels.ERROR)
       end, 0)
       return

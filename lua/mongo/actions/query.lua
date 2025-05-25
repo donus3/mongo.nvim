@@ -3,6 +3,7 @@ local utils = require("mongo.util")
 local buffer = require("mongo.buffer")
 local client = require("mongo.client")
 local ts = require("mongo.treesitter")
+local spinner = require("mongo.utils.spinner")
 
 QueryAction = {}
 
@@ -75,9 +76,11 @@ QueryAction.execute = function(workspace, database_name, queries, cb)
     query_string = table.concat(queries, " ")
   end
 
+  spinner.start_spinner(workspace.space.result.buf)
   client.run_async_command(workspace, database_name, query_string, function(out)
     if out.code ~= 0 then
       vim.defer_fn(function()
+        spinner.stop_spinner()
         vim.notify(out.stderr, vim.log.levels.ERROR)
       end, 0)
       return
@@ -91,12 +94,12 @@ QueryAction.execute = function(workspace, database_name, queries, cb)
     end
 
     vim.defer_fn(function()
+      spinner.stop_spinner()
       local text = {}
       if type(result) == "string" then
         text = vim.fn.split(result, "\n")
       end
 
-      vim.api.nvim_set_option_value("modifiable", true, { buf = workspace.space.result.buf })
       buffer.show_result(workspace, text)
       vim.api.nvim_set_current_win(workspace.space.result.win)
       vim.api.nvim_set_option_value("modifiable", false, { buf = workspace.space.result.buf })

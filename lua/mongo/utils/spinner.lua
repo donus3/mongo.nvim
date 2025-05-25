@@ -26,6 +26,7 @@ function M.start_spinner(target_bufnr)
       spinner_index = (spinner_index % #spinner_frames) + 1
 
       -- Overwrite the entire buffer with the spinner frame
+      vim.api.nvim_set_option_value("modifiable", true, { buf = bufnr })
       vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, { frame .. " Fetching..." })
     end)
   )
@@ -44,6 +45,7 @@ function M.stop_spinner(message)
   end
 
   -- Replace spinner with final message (e.g. "✓ Done")
+  vim.api.nvim_set_option_value("modifiable", true, { buf = bufnr })
   vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, { message or "✓ Done" })
 end
 

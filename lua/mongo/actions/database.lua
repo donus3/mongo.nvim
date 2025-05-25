@@ -3,6 +3,7 @@ local client = require("mongo.client")
 local buffer = require("mongo.buffer")
 local query_action = require("mongo.actions.query")
 local constant = require("mongo.constant")
+local spinner = require("mongo.utils.spinner")
 
 local DB = {}
 
@@ -10,6 +11,7 @@ local DB = {}
 ---@param workspace Workspace
 DB.show_dbs_async = function(workspace)
   local connection = workspace.connection
+  spinner.start_spinner(workspace.space.database.buf)
   client.run_async_command(workspace, "", "db.getMongo().getDBNames()", function(out)
     if out.code ~= 0 then
       vim.defer_fn(function()
@@ -19,6 +21,7 @@ DB.show_dbs_async = function(workspace)
     end
 
     vim.defer_fn(function()
+      spinner.stop_spinner()
       connection:set_db_from_raw_string(workspace, out.stdout)
 
       local lines = workspace:draw_tree()

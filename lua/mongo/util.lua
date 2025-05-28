@@ -44,4 +44,21 @@ Util.find_in_array = function(tbl, value)
   return nil
 end
 
+--- Converts a string into a table of strings, splitting by the newline character '\n'.
+-- Each line becomes an element in the table.
+--
+-- @param input_str The string to be split. If nil, an empty table is returned.
+-- @return A table of strings, where each element is a line from the input string.
+Util.string_to_table_lines = function(input_str)
+  if input_str == nil then
+    return {}
+  end
+
+  local lines = {}
+  for line in string.gmatch(input_str, "([^\n]*)") do
+    table.insert(lines, line)
+  end
+
+  return lines
+end
 return Util

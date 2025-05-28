@@ -46,7 +46,7 @@ function M.stop_spinner(message)
 
   -- Replace spinner with final message (e.g. "✓ Done")
   vim.api.nvim_set_option_value("modifiable", true, { buf = bufnr })
-  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, { message or "✓ Done" })
+  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, message or { "✓ Done" })
 end
 
 return M

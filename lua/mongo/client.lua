@@ -15,18 +15,20 @@ Client.check_is_legacy_async = function(workspace)
   }
 
   local is_legacy = false
-  vim.system(full_cmd, { text = true }, function(out)
-    if (out.stderr or ""):find("MongoServerSelectionError") then
-      is_legacy = true
-    end
-  end):wait()
+  vim
+      .system(full_cmd, { text = true }, function(out)
+        if (out.stderr or ""):find("MongoServerSelectionError") then
+          is_legacy = true
+        end
+      end)
+      :wait()
 
   return is_legacy
 end
 
 ---run_command run mongosh or mongo with given args asynchronously
 ---@param workspace Workspace
----@param args string eval string arguments pass the mongosh
+---@param args string|string[] eval string arguments pass the mongosh
 ---@param on_exit fun(out: {code: number, stdout: string, stderr: string}) cb function to call after the command is done
 Client.run_async_command = function(workspace, db_name, args, on_exit)
   if workspace.config.mongo_binary_path == nil then
@@ -45,7 +47,7 @@ Client.run_async_command = function(workspace, db_name, args, on_exit)
 
   local batch_size_config_string = connection.is_legacy
       and string.format([[DBQuery.batchSize=%d;]], workspace.config.batch_size)
-    or string.format([[config.set("displayBatchSize", %d);]], workspace.config.batch_size)
+      or string.format([[config.set("displayBatchSize", %d);]], workspace.config.batch_size)
 
   local full_cmd = {
     cmd,

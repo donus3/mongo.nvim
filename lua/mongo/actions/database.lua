@@ -2,8 +2,10 @@ local utils = require("mongo.util")
 local client = require("mongo.client")
 local buffer = require("mongo.buffer")
 local query_action = require("mongo.actions.query")
-local constant = require("mongo.constant")
+local collection_actions = require("mongo.actions.collection")
 local spinner = require("mongo.utils.spinner")
+local tree_ui = require("mongo.ui.tree")
+local constant = require("mongo.constant")
 
 local DB = {}
 
@@ -15,7 +17,7 @@ DB.show_dbs_async = function(workspace)
   client.run_async_command(workspace, "", "db.getMongo().getDBNames()", function(out)
     if out.code ~= 0 then
       vim.defer_fn(function()
-        spinner.stop_spinner()
+        spinner.stop_spinner(utils.string_to_table_lines(out.stderr))
         vim.notify(out.stderr, vim.log.levels.ERROR)
       end, 0)
       return
@@ -41,70 +43,33 @@ local set_show_dbs_keymaps = function(workspace, op)
       mode = "n",
       lhs = "<CR>",
       rhs = function()
-        local row = unpack(vim.api.nvim_win_get_cursor(0))
-        local line = utils.get_line()
+        local selected_item_name = utils.get_line()
+
+        -- build a new tree to ensure if there is a new item added
+        -- and then set the new tree back to the workspace
+        workspace.tree = tree_ui.build_tree_from_strings(utils.get_all_lines(), function(database_node)
+          return function()
+            collection_actions.show_collections_async(workspace, database_node)
+          end
+        end, function(database_node, collection_node)
+          return function()
+            vim.api.nvim_buf_set_name(
+              workspace.space.query.buf,
+              constant.workspace .. workspace.name .. constant.query_buf_name .. database_node.value.name
+            )
+            Collection_actions.select_collection(workspace, collection_node, database_node.value.name)
+          end
+        end)
         local result = workspace.tree:draw(nil, 0, {})
 
-        local target_row = utils.find_in_array(result, line)
+        -- find node to get handler function and execute
+        local target_row = utils.find_in_array(result, selected_item_name)
         if target_row ~= nil then
           target_row.is_expanded = not target_row.is_expanded
           if target_row.handler ~= nil then
             target_row.handler()
           end
-          local lines = workspace:draw_tree()
-          buffer.set_database_content(workspace, lines)
-        else
-          --- new node
-          local node_type = "Database"
-          if line:find("^  ") then
-            node_type = "Collection"
-          end
-
-          -- if the target node is database node
-          if node_type == "Database" then
-            local connection = workspace.connection
-            connection:add_db(workspace, line)
-            local new_result = workspace.tree:draw(nil, 0, {})
-            return
-          end
-
-          local above_line = ""
-          local above_line_node_type = "Database"
-          if row > 1 then
-            above_line = unpack(vim.api.nvim_buf_get_lines(0, row - 2, row - 1, false))
-            above_line_node_type = above_line:find("^  ") and "Collection" or "Database"
-          end
-
-          -- if the target node is collection node
-          local normalized_line = line:gsub("[%s]+", "")
-          local normalized_above_line = above_line:gsub("[%s]+", "")
-          local result_node = workspace.tree:find_node(normalized_above_line, above_line_node_type)
-          if result_node.target == nil then
-            vim.notify("Node not found", vim.log.levels.ERROR)
-            return
-          end
-
-          local collection = Collection:new(normalized_line)
-          local target_node = result_node.target
-          if target_node == nil then
-            return
-          end
-
-          if node_type == "Collection" then
-            target_node = result_node.root
-          end
-          target_node:add_child(Node:new(collection, false, function()
-            vim.api.nvim_buf_set_name(
-              workspace.space.query.buf,
-              constant.workspace .. workspace.name .. constant.query_buf_name .. target_node.value.name
-            )
-            Collection_actions.select_collection(workspace, collection, normalized_line)
-          end))
-          Collection_actions.select_collection(workspace, collection, normalized_line)
         end
-
-        local lines = workspace:draw_tree()
-        buffer.set_database_content(workspace, lines)
       end,
       opts = { buffer = workspace.space.database.buf },
     },

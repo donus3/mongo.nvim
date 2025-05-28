@@ -80,7 +80,7 @@ QueryAction.execute = function(workspace, database_name, queries, cb)
   client.run_async_command(workspace, database_name, query_string, function(out)
     if out.code ~= 0 then
       vim.defer_fn(function()
-        spinner.stop_spinner()
+        spinner.stop_spinner(utils.string_to_table_lines(out.stderr))
         vim.notify(out.stderr, vim.log.levels.ERROR)
       end, 0)
       return

@@ -1,6 +1,6 @@
 local buffer = require("mongo.buffer")
 local action = require("mongo.actions")
-local mongo_workspace = require("mongo.workspaces")
+local Workspace = require("mongo.workspaces")
 
 ---@class Config
 ---@field default_url string the default connection string URL
@@ -33,17 +33,6 @@ Mongo.connect = function(args)
   local workspace = Workspace:new(args[1], Mongo.config)
   buffer.init(workspace)
   action.init(workspace)
-
-  --
-  -- -- clean up autocmd when leave
-  -- local group = vim.api.nvim_create_augroup("MongoDBNvimLeave", { clear = true })
-  -- vim.api.nvim_create_autocmd("VimLeavePre", {
-  --   group = group,
-  --   pattern = "*",
-  --   callback = function()
-  --     buffer.clean(session)
-  --   end,
-  -- })
 end
 
 return Mongo

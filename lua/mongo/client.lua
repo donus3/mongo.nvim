@@ -1,3 +1,5 @@
+local connection_utils = require("mongo.utils.connection")
+
 ---@class Client
 local Client = {}
 
@@ -5,12 +7,12 @@ local Client = {}
 ---@param workspace Workspace
 Client.check_is_legacy_async = function(workspace)
   local connection = workspace.connection
-  local extracted_uri = connection:extract_input_uri(connection.uri)
+  local extracted_uri = connection_utils.extract_input_uri(connection.uri)
   local full_cmd = {
     workspace.config.mongosh_binary_path,
     extracted_uri.host,
     "--authenticationDatabase",
-    extracted_uri.auth_source,
+    extracted_uri.options.authSource or "admin",
     "--quiet",
   }
 
@@ -53,7 +55,7 @@ Client.run_async_command = function(workspace, db_name, args, on_exit)
     cmd,
     host .. "/" .. db_name,
     "--authenticationDatabase",
-    connection.auth_source or "admin",
+    connection.options.authSource or "admin",
     "--quiet",
     "--eval",
     string.format([[%s %s]], batch_size_config_string, args),

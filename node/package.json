@@ -1,0 +1,12 @@
+{
+  "name": "mongo.nvim-node-executor",
+  "version": "1.0.0",
+  "description": "Node.js executor for mongo.nvim",
+  "main": "executor.js",
+  "dependencies": {
+    "mongodb": "^7.0.0"
+  },
+  "scripts": {
+    "install-deps": "npm install"
+  }
+}

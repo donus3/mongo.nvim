@@ -1,1 +1,5 @@
 vendor/plenary.nvim
+node_modules/
+
+# This is no purpose of customizing the mongodb driver version config
+package-lock.json

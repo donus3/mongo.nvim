@@ -113,12 +113,17 @@ Buffer.create_query_buf = function(workspace)
 
     workspace.space.query.buf = vim.api.nvim_create_buf(false, true)
     disableJump(workspace.space.query.buf)
-    vim.api.nvim_buf_set_name(
-      workspace.space.query.buf,
-      constant.workspace .. workspace.name .. constant.query_buf_name
-    )
+
+    -- TODO: this is a hack to make the LSP work but not working yet ( . .)
+    -- Get the node directory path to use as a basis for the buffer name
+    -- This helps the LSP identify the correct root directory (node/)
+    local script_path = debug.getinfo(1).source:match("@(.*)$")
+    local node_dir = script_path:gsub("lua/mongo/buffer.lua", "node")
+    local query_file_path = node_dir .. "/query.ts"
+
+    vim.api.nvim_buf_set_name(workspace.space.query.buf, query_file_path)
     vim.api.nvim_win_set_buf(workspace.space.query.win, workspace.space.query.buf)
-    vim.bo[workspace.space.query.buf].filetype = "javascript"
+    vim.bo[workspace.space.query.buf].filetype = "typescript"
   end
 end
 

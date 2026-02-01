@@ -6,8 +6,8 @@ https://github.com/donus3/mongodb.nvim/assets/9076885/fde1991a-8e0b-4991-849e-8c
 ## Installation
 
 ### Prerequisites
-- mongodb shell ([mongosh](https://www.mongodb.com/docs/mongodb-shell/install/)) - used for modern MongoDB (>= v3.6)
-- (OPTIONAL For mongo < v3.6) mongo legacy ([mongo](https://www.mongodb.com/docs/v4.4/mongo/)) - used for legacy servers
+- [Node.js](https://nodejs.org/) - required for the MongoDB driver executor
+- (Optional) [mongosh](https://www.mongodb.com/docs/mongodb-shell/install/) - for legacy fallback or external shell access
 
 lazy.nvim
 ```lua
@@ -46,22 +46,24 @@ lazy.nvim
   default_url = "mongodb://localhost:27017",
   ---execute query on collection selected 
   find_on_collection_selected = false,
-  ---binary path for mongodb < v3.6 (legacy) and fallback
-  mongo_binary_path = nil,
-  ---binary path for modern mongodb shell (mongosh)
-  mongosh_binary_path = "mongosh",
+  ---binary path for node
+  node_binary_path = "node",
+  ---automatically install node dependencies on load
+  auto_install = true,
   ---number of documents in the result
   batch_size = 100,
+  ---version of the mongodb node driver
+  mongodb_driver_version = "^6.0.0",
 })
 
 ```
 
-### Binary Selection & Fallback
-The plugin automatically selects the appropriate binary based on the server version and availability:
-- **`mongosh_binary_path`**: The default binary for modern MongoDB servers (>= v3.6).
-- **`mongo_binary_path`**: Used explicitly for legacy servers (< v3.6).
-- **Fallback**: If `mongosh_binary_path` is not executable or found on your system, the plugin will automatically attempt to use `mongo_binary_path` as a fallback.
-- If no binary is found, an error notification will be displayed.
+### Executor Implementation
+The plugin now uses a Node.js-based executor with the official MongoDB driver. This removes the dependency on `mongosh` or `mongo` binaries.
+
+**Automatic Dependency Installation**: By default, the plugin will automatically run `npm install` in its `node` directory if the MongoDB driver is not found. This behavior can be disabled by setting `auto_install = false` in the configuration.
+
+**Custom Driver Version**: You can specify a custom version of the MongoDB Node.js driver using the `mongodb_driver_version` option. The plugin will automatically ensure the correct version is installed if it deviates from the current installation.
 
 ### Query
 In the query workspace, you can only execute queries in range by surrounding the query with `begin` and `end` 

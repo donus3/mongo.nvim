@@ -9,8 +9,15 @@ local Connection = {}
 ---@param workspace Workspace
 local connect = function(workspace)
   local input_url = utils.get_line()
-  local connection = workspace.connection
+  -- Trim leading/trailing whitespace
+  input_url = input_url:match("^%s*(.-)%s*$")
 
+  if input_url == "" or input_url:match("^/%*") then
+    -- Ignore empty lines or comment lines
+    return
+  end
+
+  local connection = workspace.connection
   connection:set_uri(input_url)
 
   client.check_is_legacy_async(workspace, function(is_legacy)

@@ -1,4 +1,4 @@
-*mongodb.nvim.txt*        For Neovim >= 0.8.0        Last change: 2025 June 14
+*mongodb.nvim.txt*      For Neovim >= 0.8.0      Last change: 2026 February 01
 
 ==============================================================================
 Table of Contents                             *mongodb.nvim-table-of-contents*
@@ -26,8 +26,8 @@ INSTALLATION                            *mongodb.nvim-mongo.nvim-installation*
 
 PREREQUISITES ~
 
-- mongodb shell (mongosh <https://www.mongodb.com/docs/mongodb-shell/install/>)
-- (For mongo < 3.6) mongo (mongo <https://www.mongodb.com/docs/v4.4/mongo/>)
+- Node.js <https://nodejs.org/> - required for the MongoDB driver executor
+- (Optional) mongosh <https://www.mongodb.com/docs/mongodb-shell/install/> - for legacy fallback or external shell access
 
 lazy.nvim
 
@@ -67,19 +67,37 @@ FEATURES                                    *mongodb.nvim-mongo.nvim-features*
 DEFAULT CONFIGURATION          *mongodb.nvim-mongo.nvim-default-configuration*
 
 >lua
-    require("mongo").setup({
+      require("mongo").setup({
       ---default mongo url show on start up
       default_url = "mongodb://localhost:27017",
       ---execute query on collection selected 
-      find_on_collection_selected = false
-      ---mongo binary path for mongodb < 3.6
-      mongo_binary_path = nil,
-      ---mongodb shell binary path
-      mongosh_binary_path = "mongosh",
+      find_on_collection_selected = false,
+      ---binary path for node
+      node_binary_path = "node",
+      ---automatically install node dependencies on load
+      auto_install = true,
       ---number of documents in the result
       batch_size = 100,
+      ---version of the mongodb node driver
+      mongodb_driver_version = "^6.0.0",
     })
 <
+
+
+EXECUTOR IMPLEMENTATION ~
+
+The plugin now uses a Node.js-based executor with the official MongoDB driver.
+This removes the dependency on `mongosh` or `mongo` binaries.
+
+**Automatic Dependency Installation**: By default, the plugin will
+automatically run `npm install` in its `node` directory if the MongoDB driver
+is not found. This behavior can be disabled by setting `auto_install = false`
+in the configuration.
+
+**Custom Driver Version**: You can specify a custom version of the MongoDB
+Node.js driver using the `mongodb_driver_version` option. The plugin will
+automatically ensure the correct version is installed if it deviates from the
+current installation.
 
 
 QUERY ~

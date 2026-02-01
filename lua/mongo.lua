@@ -5,8 +5,8 @@ local Workspace = require("mongo.workspaces")
 ---@class Config
 ---@field default_url string the default connection string URL
 ---@field find_on_collection_selected boolean whether to auto query on collection selected
----@field mongo_binary_path string | nil the path of mongo binary
----@field mongosh_binary_path string  the path of mongosh binary
+---@field mongo_binary_path string | nil binary path for mongodb < v3.6 (legacy) and fallback
+---@field mongosh_binary_path string  binary path for modern mongodb shell (mongosh)
 ---@field batch_size number the number of documents in a batch
 local config = {
   default_url = "mongodb://localhost:27017",

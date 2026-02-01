@@ -6,8 +6,8 @@ https://github.com/donus3/mongodb.nvim/assets/9076885/fde1991a-8e0b-4991-849e-8c
 ## Installation
 
 ### Prerequisites
-- mongodb shell ([mongosh](https://www.mongodb.com/docs/mongodb-shell/install/))
-- (For mongo < 3.6) mongo ([mongo](https://www.mongodb.com/docs/v4.4/mongo/))
+- mongodb shell ([mongosh](https://www.mongodb.com/docs/mongodb-shell/install/)) - used for modern MongoDB (>= v3.6)
+- (OPTIONAL For mongo < v3.6) mongo legacy ([mongo](https://www.mongodb.com/docs/v4.4/mongo/)) - used for legacy servers
 
 lazy.nvim
 ```lua
@@ -41,20 +41,27 @@ lazy.nvim
 
 ## Default Configuration
 ```lua
-require("mongo").setup({
+  require("mongo").setup({
   ---default mongo url show on start up
   default_url = "mongodb://localhost:27017",
   ---execute query on collection selected 
-  find_on_collection_selected = false
-  ---mongo binary path for mongodb < 3.6
+  find_on_collection_selected = false,
+  ---binary path for mongodb < v3.6 (legacy) and fallback
   mongo_binary_path = nil,
-  ---mongodb shell binary path
+  ---binary path for modern mongodb shell (mongosh)
   mongosh_binary_path = "mongosh",
   ---number of documents in the result
   batch_size = 100,
 })
 
 ```
+
+### Binary Selection & Fallback
+The plugin automatically selects the appropriate binary based on the server version and availability:
+- **`mongosh_binary_path`**: The default binary for modern MongoDB servers (>= v3.6).
+- **`mongo_binary_path`**: Used explicitly for legacy servers (< v3.6).
+- **Fallback**: If `mongosh_binary_path` is not executable or found on your system, the plugin will automatically attempt to use `mongo_binary_path` as a fallback.
+- If no binary is found, an error notification will be displayed.
 
 ### Query
 In the query workspace, you can only execute queries in range by surrounding the query with `begin` and `end` 

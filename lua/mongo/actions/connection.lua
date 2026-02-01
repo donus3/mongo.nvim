@@ -13,9 +13,10 @@ local connect = function(workspace)
 
   connection:set_uri(input_url)
 
-  local is_legacy = client.check_is_legacy_async(workspace)
-  connection.is_legacy = is_legacy
-  db.show_dbs_async(workspace)
+  client.check_is_legacy_async(workspace, function(is_legacy)
+    connection.is_legacy = is_legacy
+    db.show_dbs_async(workspace)
+  end)
 end
 
 ---set_connect_keymaps sets the keymaps for connect

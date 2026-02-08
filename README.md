@@ -65,8 +65,23 @@ The plugin now uses a Node.js-based executor with the official MongoDB driver. T
 
 **Custom Driver Version**: You can specify a custom version of the MongoDB Node.js driver using the `mongodb_driver_version` option. The plugin will automatically ensure the correct version is installed if it deviates from the current installation.
 
+### New Database and Collection
+
+1. In the database/collection buffer, add a new line with no indentation to create a new database.
+2. Add another new line indented by one level under that database to create a collection.
+
+**Committing the database and collection**
+
+1. To commit the database and collection, you must insert at least one document:
+2. Move your cursor to the collection line.
+3. Open the query buffer.
+4.Insert a document.
+5.Press Enter to submit it.
+
+Once a document is inserted, the database and collection will be committed.
+
 ### Query
-In the query workspace, you can only execute queries in range by surrounding the query with `begin` and `end` 
+In the query buffer, you can only execute queries in range by surrounding the query with `begin` and `end` 
 scope declaration.
 
 ```js

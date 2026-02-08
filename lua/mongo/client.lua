@@ -21,7 +21,7 @@ end
 Client.check_install_dependencies = function(config)
   local node_dir = get_node_dir()
   local pkg_path = node_dir .. "/package.json"
-  local mongodb_version = config.mongodb_driver_version or "^6.0.0"
+  local mongodb_version = config.mongodb_driver_version or "^7.0.0"
 
   local needs_install = false
 

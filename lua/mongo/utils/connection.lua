@@ -67,8 +67,8 @@ M.extract_input_uri = function(uri)
     vim.defer_fn(function()
       vim.notify(
         "Unsupported mongodb URI "
-        .. uri
-        .. ". Please use mongodb://username:password@host[/db_name][/?options] or mongodb://host[/db_name][/?options]",
+          .. uri
+          .. ". Please use mongodb://username:password@host[/db_name][/?options] or mongodb://host[/db_name][/?options]",
         vim.log.levels.ERROR
       )
     end, 0)

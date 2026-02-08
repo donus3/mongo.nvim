@@ -43,7 +43,10 @@ Client.check_install_dependencies = function(config)
   end
 
   if needs_install then
-    vim.notify("mongo.nvim: Missing or incorrect Node.js dependencies. Installing mongodb@" .. mongodb_version .. "...", vim.log.levels.INFO)
+    vim.notify(
+      "mongo.nvim: Missing or incorrect Node.js dependencies. Installing mongodb@" .. mongodb_version .. "...",
+      vim.log.levels.INFO
+    )
     vim.system({ "npm", "install", "mongodb@" .. mongodb_version }, { cwd = node_dir }, function(out)
       if out.code == 0 then
         vim.schedule(function()
@@ -51,7 +54,13 @@ Client.check_install_dependencies = function(config)
         end)
       else
         vim.schedule(function()
-          vim.notify("mongo.nvim: Failed to install dependencies. Please run 'npm install mongodb@" .. mongodb_version .. "' manually in " .. node_dir, vim.log.levels.ERROR)
+          vim.notify(
+            "mongo.nvim: Failed to install dependencies. Please run 'npm install mongodb@"
+              .. mongodb_version
+              .. "' manually in "
+              .. node_dir,
+            vim.log.levels.ERROR
+          )
           if out.stderr and out.stderr ~= "" then
             vim.notify("npm error: " .. out.stderr, vim.log.levels.ERROR)
           end
@@ -62,7 +71,7 @@ Client.check_install_dependencies = function(config)
 end
 
 ---check_is_legacy_async check if the host is legacy or not
----Note: With the Node driver, we might not need this distinction as much, 
+---Note: With the Node driver, we might not need this distinction as much,
 ---but we keep it for compatibility if we still want to detect legacy servers.
 ---@param workspace Workspace
 ---@param on_done fun(is_legacy: boolean)
@@ -125,7 +134,7 @@ Client.run_async_command = function(workspace, db_name, args, on_exit)
     args = table.concat(args, "\n")
   end
 
-  -- We incorporate the batch size into the query if possible, 
+  -- We incorporate the batch size into the query if possible,
   -- although the driver handles results differently.
   -- For now, we'll let the user's query handle .limit() etc.
 

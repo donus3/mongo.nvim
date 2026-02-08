@@ -126,7 +126,7 @@ function Tree:draw(node, depth, result, is_parent_expanded)
       display = depth_space .. (current_node.value and current_node.value.name or "Unnamed Node"),
       handler = current_node.handler,
       is_expanded = current_node.is_expanded,
-      is_parent_expanded = is_parent_expanded,               -- True if the direct parent is expanded
+      is_parent_expanded = is_parent_expanded, -- True if the direct parent is expanded
       node_type = depth == 1 and "Database" or "Collection", -- Type based on display depth
     })
   end
@@ -179,8 +179,11 @@ local function build_tree_from_strings(strings, database_node_handler, collectio
         -- This is a second-depth node (will be typed as "Collection" by Tree:draw)
         if current_depth1_node then
           local collection_node = Collection:new(node_name)
-          local new_node =
-              Node:new(collection_node, false, collection_node_handler(current_depth1_node, collection_node))
+          local new_node = Node:new(
+            collection_node,
+            false,
+            collection_node_handler(current_depth1_node, collection_node)
+          )
           current_depth1_node:add_child(new_node)
         else
           -- This indented string has no preceding non-indented parent. Skip it.

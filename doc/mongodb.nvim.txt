@@ -1,4 +1,4 @@
-*mongodb.nvim.txt*      For Neovim >= 0.8.0      Last change: 2026 February 08
+*mongodb.nvim.txt*      For Neovim >= 0.8.0      Last change: 2026 February 22
 
 ==============================================================================
 Table of Contents                             *mongodb.nvim-table-of-contents*
@@ -79,7 +79,7 @@ DEFAULT CONFIGURATION          *mongodb.nvim-mongo.nvim-default-configuration*
       ---number of documents in the result
       batch_size = 100,
       ---version of the mongodb node driver
-      mongodb_driver_version = "^6.0.0",
+      mongodb_driver_version = "^7.0.0",
     })
 <
 

@@ -15,7 +15,7 @@ local config = {
   mongo_binary_path = nil,
   mongosh_binary_path = "mongosh",
   node_binary_path = "node",
-  mongodb_driver_version = "^6.0.0",
+  mongodb_driver_version = "^7.0.0",
   batch_size = 100,
   auto_install = true,
 }

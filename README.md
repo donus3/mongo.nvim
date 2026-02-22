@@ -53,7 +53,7 @@ lazy.nvim
   ---number of documents in the result
   batch_size = 100,
   ---version of the mongodb node driver
-  mongodb_driver_version = "^6.0.0",
+  mongodb_driver_version = "^7.0.0",
 })
 
 ```

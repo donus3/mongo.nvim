@@ -16,29 +16,85 @@ local function get_executor_path()
   return get_node_dir() .. "/executor.js"
 end
 
+---Read the installed mongodb driver version from node_modules
+---@param node_dir string
+---@return string|nil version string or nil if not installed
+local function get_installed_version(node_dir)
+  local pkg_path = node_dir .. "/node_modules/mongodb/package.json"
+  if vim.fn.filereadable(pkg_path) == 0 then
+    return nil
+  end
+  local ok, pkg_json = pcall(function()
+    local content = vim.fn.readfile(pkg_path)
+    return vim.fn.json_decode(table.concat(content, "\n"))
+  end)
+  if ok and pkg_json then
+    return pkg_json.version
+  end
+  return nil
+end
+
+---Check if an installed version satisfies a semver range
+---@param installed string e.g. "7.1.0"
+---@param range string e.g. "^7.0.0", "~7.0.0", "7.0.0", ">=7.0.0"
+---@return boolean
+local function version_satisfies(installed, range)
+  local function parse_version(v)
+    local major, minor, patch = v:match("^(%d+)%.(%d+)%.(%d+)")
+    if major then
+      return { tonumber(major), tonumber(minor), tonumber(patch) }
+    end
+    return nil
+  end
+
+  -- Strip leading semver range operator and parse the base version
+  local operator, base = range:match("^([~^>=<]*)(.+)$")
+  local inst = parse_version(installed)
+  local req = parse_version(base)
+  if not inst or not req then
+    return false
+  end
+
+  if operator == "^" then
+    -- ^major.minor.patch: allow changes that do not modify the left-most non-zero digit
+    if req[1] > 0 then
+      return inst[1] == req[1]
+        and (inst[2] > req[2] or (inst[2] == req[2] and inst[3] >= req[3]))
+    end
+    -- ^0.minor.patch
+    if req[2] > 0 then
+      return inst[1] == 0
+        and inst[2] == req[2]
+        and inst[3] >= req[3]
+    end
+    -- ^0.0.patch
+    return inst[1] == 0 and inst[2] == 0 and inst[3] == req[3]
+  elseif operator == "~" then
+    return inst[1] == req[1] and inst[2] == req[2] and inst[3] >= req[3]
+  elseif operator == ">=" then
+    return inst[1] > req[1]
+      or (inst[1] == req[1] and inst[2] > req[2])
+      or (inst[1] == req[1] and inst[2] == req[2] and inst[3] >= req[3])
+  elseif operator == "" then
+    return inst[1] == req[1] and inst[2] == req[2] and inst[3] == req[3]
+  end
+
+  -- Unknown operator, fallback to exact match
+  return installed == range
+end
+
 ---Check if dependencies are installed and install them if missing
 ---@param config Config
 Client.check_install_dependencies = function(config)
   local node_dir = get_node_dir()
-  local pkg_path = node_dir .. "/package.json"
   local mongodb_version = config.mongodb_driver_version or "^7.0.0"
 
   local needs_install = false
+  local installed = get_installed_version(node_dir)
 
-  -- Check if package.json exists and has the correct version
-  if vim.fn.filereadable(pkg_path) == 1 then
-    local pkg_content = vim.fn.readfile(pkg_path)
-    local pkg_json = vim.fn.json_decode(table.concat(pkg_content, "\n"))
-
-    if not pkg_json.dependencies or pkg_json.dependencies.mongodb ~= mongodb_version then
-      needs_install = true
-    end
-  else
+  if not installed then
     needs_install = true
-  end
-
-  -- Also check if node_modules exists
-  if vim.fn.isdirectory(node_dir .. "/node_modules") == 0 then
+  elseif not version_satisfies(installed, mongodb_version) then
     needs_install = true
   end
 

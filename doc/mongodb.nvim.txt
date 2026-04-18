@@ -1,4 +1,5 @@
-*mongodb.nvim.txt*      For Neovim >= 0.8.0      Last change: 2026 February 22
+*mongodb.nvim.txt*
+                             For Neovim >= 0.8.0    Last change: 2026 April 18
 
 ==============================================================================
 Table of Contents                             *mongodb.nvim-table-of-contents*
@@ -26,6 +27,7 @@ INSTALLATION                            *mongodb.nvim-mongo.nvim-installation*
 
 PREREQUISITES ~
 
+- Nvim 0.12 or higher
 - Node.js <https://nodejs.org/> - required for the MongoDB driver executor
 - (Optional) mongosh <https://www.mongodb.com/docs/mongodb-shell/install/> - for legacy fallback or external shell access
 

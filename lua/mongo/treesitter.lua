@@ -5,8 +5,6 @@ Treesitter = {}
 ---@return string 2 identifier
 Treesitter.getDocument = function()
   local ts = vim.treesitter
-  local ts_util = require("nvim-treesitter.ts_utils")
-  local parsers = require("nvim-treesitter.parsers")
   local document_lines = {}
 
   local query_object_in_array_string = [[
@@ -25,7 +23,7 @@ Treesitter.getDocument = function()
     ]
   ]]
 
-  local parser = parsers.get_parser()
+  local parser = ts.get_parser()
   local tree = parser:parse()[1]
   local root = tree:root()
   local lang = parser:lang()
@@ -37,7 +35,7 @@ Treesitter.getDocument = function()
     for _, match in pairs(matches) do
       local node = match[1] or match
       if node ~= nil then
-        if ts.is_ancestor(node, ts_util.get_node_at_cursor()) then
+        if ts.is_ancestor(node, ts.get_node()) then
           root_object_string = ts.get_node_text(node, 0)
           identifier = ts.get_node_text(node:child(1), 0)
         end
@@ -61,8 +59,6 @@ end
 ---@return string | nil
 Treesitter.getQueryInScope = function()
   local ts = vim.treesitter
-  local parsers = require("nvim-treesitter.parsers")
-  local ts_util = require("nvim-treesitter.ts_utils")
 
   local query_string = [[
   ((identifier) @scope
@@ -70,7 +66,7 @@ Treesitter.getQueryInScope = function()
     (#has-ancestor? @scope program)) @scope_program
 ]]
 
-  local parser = parsers.get_parser()
+  local parser = ts.get_parser()
   local tree = parser:parse()[1]
   local root = tree:root()
   local lang = parser:lang()

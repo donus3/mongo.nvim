@@ -6,6 +6,7 @@ https://github.com/donus3/mongodb.nvim/assets/9076885/fde1991a-8e0b-4991-849e-8c
 ## Installation
 
 ### Prerequisites
+- Nvim 0.12 or higher
 - [Node.js](https://nodejs.org/) - required for the MongoDB driver executor
 - (Optional) [mongosh](https://www.mongodb.com/docs/mongodb-shell/install/) - for legacy fallback or external shell access
 
